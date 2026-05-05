@@ -51,13 +51,13 @@ public:
                                     bool,             multiFile);
 };
 
-template <typename FImpl, int nBasis, typename FImplIo = FImpl>
+template <typename FImpl, int nBasis, typename FImplIo = FImpl, typename FImplC = FImpl>
 class TEigenPackLCDecompress: public Module<EigenPackLCDecompressPar>
 {
 public:
     FERM_TYPE_ALIASES(FImpl,);
     typedef BaseFermionEigenPack<FImpl>                    BasePack;
-    typedef CoarseFermionEigenPack<FImpl, nBasis, FImplIo> CoarsePack;
+    typedef CoarseFermionEigenPack<FImplC, nBasis, FImplIo> CoarsePack;
     typedef typename CoarsePack::Field                     Field;
     typedef typename CoarsePack::FieldIo                   FieldIo;
     typedef typename CoarsePack::CoarseField               CoarseField;
@@ -81,32 +81,40 @@ public:
 MODULE_REGISTER_TMP(EigenPackLCDecompress    , ARG(TEigenPackLCDecompress<FIMPL , HADRONS_DEFAULT_LANCZOS_NBASIS>), MUtilities);
 MODULE_REGISTER_TMP(EigenPackLCDecompress250 , ARG(TEigenPackLCDecompress<FIMPL , 250>), MUtilities);
 MODULE_REGISTER_TMP(EigenPackLCDecompress400 , ARG(TEigenPackLCDecompress<FIMPL , 400>), MUtilities);
+MODULE_REGISTER_TMP(EigenPackLCDecompress1000 , ARG(TEigenPackLCDecompress<FIMPL , 1000>), MUtilities);
+//MODULE_REGISTER_TMP(EigenPackLCDecompress1000F2D , ARG(TEigenPackLCDecompress<FIMPL , 1000, FIMPL, FIMPLF>), MUtilities);
+//MODULE_REGISTER_TMP(EigenPackLCDecompress1000Io32 , ARG(TEigenPackLCDecompress<FIMPL , 1000, FIMPLF>), MUtilities);
+MODULE_REGISTER_TMP(EigenPackLCDecompress1000Io32 , ARG(TEigenPackLCDecompress<FIMPLF , 1000, FIMPL>), MUtilities);
 
 MODULE_REGISTER_TMP(EigenPackLCDecompressF   , ARG(TEigenPackLCDecompress<FIMPLF, HADRONS_DEFAULT_LANCZOS_NBASIS>), MUtilities);
 MODULE_REGISTER_TMP(EigenPackLCDecompress250F, ARG(TEigenPackLCDecompress<FIMPLF, 250>), MUtilities);
 MODULE_REGISTER_TMP(EigenPackLCDecompress400F, ARG(TEigenPackLCDecompress<FIMPLF, 400>), MUtilities);
+MODULE_REGISTER_TMP(EigenPackLCDecompress1000F, ARG(TEigenPackLCDecompress<FIMPLF, 1000>), MUtilities);
 
 
 /******************************************************************************
  *                 TEigenPackLCDecompress implementation                      *
  ******************************************************************************/
 // constructor /////////////////////////////////////////////////////////////////
-template <typename FImpl, int nBasis, typename FImplIo>
-TEigenPackLCDecompress<FImpl, nBasis, FImplIo>::TEigenPackLCDecompress(const std::string name)
+//template <typename FImpl, int nBasis, typename FImplIo>
+template <typename FImpl, int nBasis, typename FImplIo, typename FImplC>
+TEigenPackLCDecompress<FImpl, nBasis, FImplIo, FImplC>::TEigenPackLCDecompress(const std::string name)
 : Module<EigenPackLCDecompressPar>(name)
 {}
 
 // dependencies/products ///////////////////////////////////////////////////////
-template <typename FImpl, int nBasis, typename FImplIo>
-std::vector<std::string> TEigenPackLCDecompress<FImpl, nBasis, FImplIo>::getInput(void)
+//template <typename FImpl, int nBasis, typename FImplIo>
+template <typename FImpl, int nBasis, typename FImplIo, typename FImplC>
+std::vector<std::string> TEigenPackLCDecompress<FImpl, nBasis, FImplIo, FImplC>::getInput(void)
 {
     std::vector<std::string> in = {par().epack};
     
     return in;
 }
 
-template <typename FImpl, int nBasis, typename FImplIo>
-std::vector<std::string> TEigenPackLCDecompress<FImpl, nBasis, FImplIo>::getOutput(void)
+//template <typename FImpl, int nBasis, typename FImplIo>
+template <typename FImpl, int nBasis, typename FImplIo, typename FImplC>
+std::vector<std::string> TEigenPackLCDecompress<FImpl, nBasis, FImplIo, FImplC>::getOutput(void)
 {
     std::vector<std::string> out = {getName()};
     
@@ -114,8 +122,9 @@ std::vector<std::string> TEigenPackLCDecompress<FImpl, nBasis, FImplIo>::getOutp
 }
 
 // setup ///////////////////////////////////////////////////////////////////////
-template <typename FImpl, int nBasis, typename FImplIo>
-void TEigenPackLCDecompress<FImpl, nBasis, FImplIo>::setup(void)
+//template <typename FImpl, int nBasis, typename FImplIo>
+template <typename FImpl, int nBasis, typename FImplIo, typename FImplC>
+void TEigenPackLCDecompress<FImpl, nBasis, FImplIo, FImplC>::setup(void)
 {    
     GridBase *gridIo = nullptr;
     [[maybe_unused]] GridBase *gridCoarseIo = nullptr;
@@ -138,8 +147,9 @@ void TEigenPackLCDecompress<FImpl, nBasis, FImplIo>::setup(void)
 }
 
 // execution ///////////////////////////////////////////////////////////////////
-template <typename FImpl, int nBasis, typename FImplIo>
-void TEigenPackLCDecompress<FImpl, nBasis, FImplIo>::execute(void)
+//template <typename FImpl, int nBasis, typename FImplIo>
+template <typename FImpl, int nBasis, typename FImplIo, typename FImplC>
+void TEigenPackLCDecompress<FImpl, nBasis, FImplIo, FImplC>::execute(void)
 {
     auto &coarsePack = envGet(CoarsePack, par().epack);
     auto &finePack   = envGetDerived(BasePack, FinePack, getName());

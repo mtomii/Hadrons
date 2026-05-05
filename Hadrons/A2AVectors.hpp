@@ -216,15 +216,20 @@ void A2AVectorsSchurDiagTwo<FImpl>::makeHighModeV5D(FermionField &vout_4d,
                                                     FermionField &vout_5d, 
                                                     const FermionField &noise)
 {
+  LOG(Message) << "AA" << std::endl;
     if (noise.Grid()->Dimensions() == fGrid_->Dimensions() - 1)
     {
+      LOG(Message) << "BB" << std::endl;
         action_.ImportPhysicalFermionSource(noise, tmp5_);
     }
     else
     {
+      LOG(Message) << "CC" << std::endl;
         tmp5_ = noise;
     }
+    LOG(Message) << "DD" << std::endl;
     makeHighModeV(vout_5d, tmp5_);
+    LOG(Message) << "EE" << std::endl;
     action_.ExportPhysicalFermionSolution(vout_5d, vout_4d);
 }
 

@@ -46,11 +46,13 @@ public:
 MODULE_REGISTER_TMP(CoarseDeflation    , ARG(TCoarseDeflation<CoarseFermionEigenPack<FIMPL ,HADRONS_DEFAULT_LANCZOS_NBASIS>>), MGuesser);
 MODULE_REGISTER_TMP(CoarseDeflation250 , ARG(TCoarseDeflation<CoarseFermionEigenPack<FIMPL ,250>>), MGuesser);
 MODULE_REGISTER_TMP(CoarseDeflation400 , ARG(TCoarseDeflation<CoarseFermionEigenPack<FIMPL ,400>>), MGuesser);
+MODULE_REGISTER_TMP(CoarseDeflation1000 , ARG(TCoarseDeflation<CoarseFermionEigenPack<FIMPL ,1000>>), MGuesser);
 
 
 MODULE_REGISTER_TMP(CoarseDeflationF   , ARG(TCoarseDeflation<CoarseFermionEigenPack<FIMPLF,HADRONS_DEFAULT_LANCZOS_NBASIS>>), MGuesser);
 MODULE_REGISTER_TMP(CoarseDeflation250F, ARG(TCoarseDeflation<CoarseFermionEigenPack<FIMPLF,250>>), MGuesser);
 MODULE_REGISTER_TMP(CoarseDeflation400F, ARG(TCoarseDeflation<CoarseFermionEigenPack<FIMPLF,400>>), MGuesser);
+MODULE_REGISTER_TMP(CoarseDeflation1000F, ARG(TCoarseDeflation<CoarseFermionEigenPack<FIMPLF,1000>>), MGuesser);
 
 
 /******************************************************************************

@@ -621,8 +621,8 @@ const VirtualMachine::MemoryProfile & VirtualMachine::getMemoryProfile(void)
 {
     if (memoryProfileOutdated_)
     {
-        makeMemoryProfile();
-        memoryProfileOutdated_ = false;
+      makeMemoryProfile();
+      memoryProfileOutdated_ = false;
     }
 
     return profile_;
@@ -640,7 +640,7 @@ void VirtualMachine::makeMemoryProfile(void)
     profile_.module.resize(getNModule());
     env().protectObjects(false);
     GridLogMessage.Active(false);
-    HadronsLogMessage.Active(false);
+  //HadronsLogMessage.Active(false);
     for (auto it = program.rbegin(); it != program.rend(); ++it) 
     {
         auto a = *it;
@@ -658,7 +658,7 @@ void VirtualMachine::makeMemoryProfile(void)
     HadronsLogMessage.Active(hmsg);
     if (hasDatabase() and makeObjectDb_)
     {
-        for (unsigned int i = 0; i < profile_.object.size(); ++i)
+       for (unsigned int i = 0; i < profile_.object.size(); ++i)
         {
             ObjectEntry o;
 
@@ -752,7 +752,7 @@ void VirtualMachine::memoryProfile(const unsigned int address)
     try
     {
         currentModule_ = address;
-        m->setup();
+        m->setup(); // often crashes
         currentModule_ = -1;
         updateProfile(address);
     }

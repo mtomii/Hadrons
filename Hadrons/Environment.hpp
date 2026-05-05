@@ -535,7 +535,9 @@ void Environment::createDerivedObject(const std::string name,
         size_t initMem               = MemoryProfiler::stats->currentlyAllocated;
         object_[address].storage     = storage;
         object_[address].Ls          = Ls;
+	LOG(Message) << "resetting" << std::endl;
         object_[address].data.reset(new Holder<B>(new T(std::forward<Ts>(args)...)));
+	LOG(Message) << "done" << std::endl;
         object_[address].size        = MemoryProfiler::stats->currentlyAllocated - initMem;
         object_[address].type        = typeIdPt<B>();
         object_[address].derivedType = typeIdPt<T>();
@@ -595,7 +597,7 @@ T * Environment::getDerivedObject(const unsigned int address) const
             else
             {
                 HADRONS_ERROR_REF(ObjectType, "object with address " + 
-                            std::to_string(address) +
+				  std::to_string(address)  + "( " + getObjectName(address) + " )"
                             " does not have type '" + typeName(&typeid(B)) +
                             "' (has type '" + getObjectType(address) + "')", address);
             }

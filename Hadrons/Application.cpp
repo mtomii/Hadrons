@@ -247,7 +247,9 @@ void Application::parseParameterFile(const std::string parameterFileName)
     
     LOG(Message) << "Building application from '" << parameterFileName << "'..." << std::endl;
     read(reader, "parameters", par);
+    // LOG(Message) << "setPar" << std::endl;
     setPar(par);
+    // LOG(Message) << "Done" << std::endl;
     if (!par.database.restoreModules)
     {
         if (!push(reader, "modules"))

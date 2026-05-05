@@ -33,8 +33,12 @@ using namespace MUtilities;
 template class HADRONS_NAMESPACE::MUtilities::TEigenPackLCDecompress<FIMPL,HADRONS_DEFAULT_LANCZOS_NBASIS>;
 template class HADRONS_NAMESPACE::MUtilities::TEigenPackLCDecompress<FIMPL,250>;
 template class HADRONS_NAMESPACE::MUtilities::TEigenPackLCDecompress<FIMPL,400>;
+template class HADRONS_NAMESPACE::MUtilities::TEigenPackLCDecompress<FIMPL,1000>;
+//template class HADRONS_NAMESPACE::MUtilities::TEigenPackLCDecompress<FIMPL,1000, FIMPL, FIMPLF>;
+template class HADRONS_NAMESPACE::MUtilities::TEigenPackLCDecompress<FIMPLF,1000, FIMPL>;
 
 template class HADRONS_NAMESPACE::MUtilities::TEigenPackLCDecompress<FIMPLF,HADRONS_DEFAULT_LANCZOS_NBASIS>;
 template class HADRONS_NAMESPACE::MUtilities::TEigenPackLCDecompress<FIMPLF,250>;
 template class HADRONS_NAMESPACE::MUtilities::TEigenPackLCDecompress<FIMPLF,400>;
+template class HADRONS_NAMESPACE::MUtilities::TEigenPackLCDecompress<FIMPLF,1000>;
 

@@ -7,7 +7,10 @@ bin_PROGRAMS = \
   HadronsContractorBenchmark \
   HadronsXmlRun              \
   HadronsXmlValidate         \
-  HadronsFermionEP64To32 
+  HadronsFermionEP64To32     \
+  K2pipiContractor           \
+  BubbleContractor           \
+  FlexibleContractor
 
 BatchDeflationBenchmark_SOURCES = BatchDeflationBenchmark.cpp
 BatchDeflationBenchmark_LDADD = -lHadrons -lGrid
@@ -24,6 +27,15 @@ HadronsFermionEP64To32_LDADD    = -lHadrons -lGrid
 
 HadronsContractor_SOURCES = Contractor.cpp
 HadronsContractor_LDADD   = -lHadrons -lGrid
+
+FlexibleContractor_SOURCES = FlexibleContractor.cpp
+FlexibleContractor_LDADD   = -lHadrons -lGrid
+
+K2pipiContractor_SOURCES = K2pipiContractor.cpp
+K2pipiContractor_LDADD   = -lHadrons -lGrid
+
+BubbleContractor_SOURCES = BubbleContractor.cpp
+BubbleContractor_LDADD   = -lHadrons -lGrid
 
 HadronsContractorBenchmark_SOURCES = ContractorBenchmark.cpp
 HadronsContractorBenchmark_LDADD   = -lHadrons -lGrid

@@ -219,8 +219,11 @@ void TA2AVectors<FImpl, Pack>::execute(void)
         }
         else
         {
+	  LOG(Message) << "AAA" << std::endl;
             envGetTmp(FermionField, f5);
+	  LOG(Message) << "BBB" << std::endl;
             a2a.makeHighModeV5D(v[Nl_ + ih], f5, noise.getFerm(ih));
+	  LOG(Message) << "CCC" << std::endl;
         }
         stopTimer("V high mode");
         startTimer("W high mode");
