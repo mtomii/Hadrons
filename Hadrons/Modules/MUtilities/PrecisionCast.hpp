@@ -1,9 +1,10 @@
 /*
  * PrecisionCast.hpp, part of Hadrons (https://github.com/aportelli/Hadrons)
  *
- * Copyright (C) 2015 - 2020
+ * Copyright (C) 2015 - 2023
  *
  * Author: Antonin Portelli <antonin.portelli@me.com>
+ * Author: Fionn O hOgain <fionn.o.hogain@ed.ac.uk>
  *
  * Hadrons is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -63,6 +64,9 @@ public:
 
 MODULE_REGISTER_TMP(GaugeSinglePrecisionCast, 
                     ARG(TPrecisionCast<GIMPLD::GaugeField, GIMPLF::GaugeField>),
+                    MUtilities);
+MODULE_REGISTER_TMP(GaugeU1SinglePrecisionCast, 
+                    ARG(TPrecisionCast<PeriodicGImplU1D::GaugeField, PeriodicGImplU1F::GaugeField>),
                     MUtilities);
 MODULE_REGISTER_TMP(ColourMatrixSinglePrecisionCast, 
                     ARG(TPrecisionCast<GIMPLD::GaugeLinkField, GIMPLF::GaugeLinkField>),

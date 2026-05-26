@@ -1,10 +1,12 @@
 /*
  * Test_hadrons_spectrum.cpp, part of Hadrons (https://github.com/aportelli/Hadrons)
  *
- * Copyright (C) 2015 - 2020
+ * Copyright (C) 2015 - 2023
  *
  * Author: Antonin Portelli <antonin.portelli@me.com>
+ * Author: Fabian Joswig <fabian.joswig@ed.ac.uk>
  * Author: Felix Erben <felix.erben@ed.ac.uk>
+ * Author: Michael Marshall <43034299+mmphys@users.noreply.github.com>
  * Author: Raoul Hodgson <raoul.hodgson@ed.ac.uk>
  *
  * Hadrons is free software: you can redistribute it and/or modify
@@ -20,7 +22,7 @@
  * You should have received a copy of the GNU General Public License
  * along with Hadrons.  If not, see <http://www.gnu.org/licenses/>.
  *
- * See the full license in the file "LICENSE" in the top level distribution
+ * See the full license in the file "LICENSE" in the top level distribution 
  * directory.
  */
 
@@ -103,7 +105,7 @@ int main(int argc, char *argv[])
         // actions
         MAction::DWF::Par actionPar;
         actionPar.gauge = "gauge";
-        actionPar.Ls    = 12;
+        actionPar.Ls    = 8;
         actionPar.M5    = 1.8;
         actionPar.mass  = mass[i];
         actionPar.boundary = boundary;
@@ -113,7 +115,7 @@ int main(int argc, char *argv[])
         // solvers
         MSolver::RBPrecCG::Par solverPar;
         solverPar.action       = "DWF_" + flavour[i];
-        solverPar.residual     = 1.0e-8;
+        solverPar.residual     = 1.0e-3;  // High residual for test purposes only. Use 1.0e-8 or smaller for physics workflows.
         solverPar.maxIteration = 10000;
         application.createModule<MSolver::RBPrecCG>("CG_" + flavour[i],
                                                     solverPar);

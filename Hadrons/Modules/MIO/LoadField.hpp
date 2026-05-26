@@ -1,9 +1,10 @@
 /*
  * LoadField.hpp, part of Hadrons (https://github.com/aportelli/Hadrons)
  *
- * Copyright (C) 2015 - 2020
+ * Copyright (C) 2015 - 2023
  *
  * Author: Antonin Portelli <antonin.portelli@me.com>
+ * Author: Michael Marshall <43034299+mmphys@users.noreply.github.com>
  *
  * Hadrons is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -72,6 +73,8 @@ MODULE_REGISTER_TMP(LoadPropagator, TLoadField<FIMPL::PropagatorField>, MIO);
 MODULE_REGISTER_TMP(LoadPropagatorIo32, ARG(TLoadField<FIMPL::PropagatorField, FIMPLF::PropagatorField>), MIO);
 #endif
 MODULE_REGISTER_TMP(LoadColourMatrixField, TLoadField<GIMPL::GaugeLinkField>, MIO);
+MODULE_REGISTER_TMP(LoadEmField, TLoadField<TEmFieldGenerator<vComplex>::GaugeField>, MIO);
+MODULE_REGISTER_TMP(LoadComplex, TLoadField<LatticeComplex>, MIO);
 
 /******************************************************************************
  *                 TLoadField implementation                             *

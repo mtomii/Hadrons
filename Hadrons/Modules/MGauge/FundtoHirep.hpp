@@ -1,7 +1,7 @@
 /*
  * FundtoHirep.hpp, part of Hadrons (https://github.com/aportelli/Hadrons)
  *
- * Copyright (C) 2015 - 2020
+ * Copyright (C) 2015 - 2023
  *
  * Author: Antonin Portelli <antonin.portelli@me.com>
  * Author: pretidav <david.preti@csic.es>
@@ -63,9 +63,55 @@ public:
     void execute(void);
 };
 
-//MODULE_REGISTER_TMP(FundtoAdjoint,   TFundtoHirep<AdjointRepresentation>, MGauge);
-//MODULE_REGISTER_TMP(FundtoTwoIndexSym, TFundtoHirep<TwoIndexSymmetricRepresentation>, MGauge);
-//MODULE_REGISTER_TMP(FundtoTwoIndexAsym, TFundtoHirep<TwoIndexAntiSymmetricRepresentation>, MGauge);
+MODULE_REGISTER_TMP(FundtoAdjoint,   TFundtoHirep<AdjointRepresentation>, MGauge);
+MODULE_REGISTER_TMP(FundtoTwoIndexSym, TFundtoHirep<TwoIndexSymmetricRepresentation>, MGauge);
+MODULE_REGISTER_TMP(FundtoTwoIndexAsym, TFundtoHirep<TwoIndexAntiSymmetricRepresentation>, MGauge);
+
+// constructor /////////////////////////////////////////////////////////////////
+template <class Rep>
+TFundtoHirep<Rep>::TFundtoHirep(const std::string name)
+: Module<FundtoHirepPar>(name)
+{}
+
+// dependencies/products ///////////////////////////////////////////////////////
+template <class Rep>
+std::vector<std::string> TFundtoHirep<Rep>::getInput(void)
+{
+    std::vector<std::string> in = {par().gaugeconf};
+
+    return in;
+}
+
+template <class Rep>
+std::vector<std::string> TFundtoHirep<Rep>::getOutput(void)
+{
+    std::vector<std::string> out = {getName()};
+
+    return out;
+}
+
+// setup ///////////////////////////////////////////////////////////////////////
+template <typename Rep>
+void TFundtoHirep<Rep>::setup(void)
+{
+    typedef typename Rep::LatticeField RepLatticeField;
+    envCreateLat(RepLatticeField, getName());
+}
+
+// execution ///////////////////////////////////////////////////////////////////
+template <class Rep>
+void TFundtoHirep<Rep>::execute(void)
+{
+    LOG(Message) << "Transforming Representation" << std::endl;
+
+    auto &U    = envGet(LatticeGaugeField, par().gaugeconf);
+    auto &URep = envGet(typename Rep::LatticeField, getName());
+
+    Rep TargetRepresentation(U.Grid());
+    TargetRepresentation.update_representation(U);
+    URep = TargetRepresentation.U;
+}
+
 
 END_MODULE_NAMESPACE
 

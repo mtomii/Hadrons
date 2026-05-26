@@ -1,9 +1,10 @@
 /*
  * SqlEntry.hpp, part of Hadrons (https://github.com/aportelli/Hadrons)
  *
- * Copyright (C) 2015 - 2020
+ * Copyright (C) 2015 - 2023
  *
  * Author: Antonin Portelli <antonin.portelli@me.com>
+ * Author: Henrique B.R <h.b.rocha@ed.ac.uk>
  *
  * Hadrons is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -330,7 +331,7 @@ SqlEntry::sqlType(void)
  ******************************************************************************/
 #define HADRONS_SQL_MEMBER(A, B)      HADRONS_NAMESPACE::CppType<A>::type B;
 #define HADRONS_SQL_BOOL_MEMBER(A, B) bool B{false};
-#define HADRONS_SQL_SCHEMA(A, B)      schema += std::string(#B) + " " + sqlType<A>() + ",";
+#define HADRONS_SQL_SCHEMA(A, B)      schema += "'" + std::string(#B) + "' " + sqlType<A>() + ",";
 #define HADRONS_SQL_INSERT(A, B)\
 if (nullify.B)\
 {\

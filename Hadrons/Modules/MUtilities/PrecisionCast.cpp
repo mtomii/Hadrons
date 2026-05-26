@@ -1,9 +1,10 @@
 /*
  * PrecisionCast.cpp, part of Hadrons (https://github.com/aportelli/Hadrons)
  *
- * Copyright (C) 2015 - 2020
+ * Copyright (C) 2015 - 2023
  *
  * Author: Antonin Portelli <antonin.portelli@me.com>
+ * Author: Fionn O hOgain <fionn.o.hogain@ed.ac.uk>
  *
  * Hadrons is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,4 +32,5 @@ using namespace MUtilities;
 
 template class HADRONS_NAMESPACE::MUtilities::TPrecisionCast<GIMPLD::GaugeField, GIMPLF::GaugeField>;
 template class HADRONS_NAMESPACE::MUtilities::TPrecisionCast<GIMPLD::GaugeLinkField, GIMPLF::GaugeLinkField>;
+template class HADRONS_NAMESPACE::MUtilities::TPrecisionCast<PeriodicGImplU1D::GaugeField, PeriodicGImplU1F::GaugeField>;
 template class HADRONS_NAMESPACE::MUtilities::TPrecisionCast<FIMPLD::FermionField, FIMPLF::FermionField>;

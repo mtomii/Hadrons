@@ -1,7 +1,7 @@
 /*
  * EigenPackLCDecompress.hpp, part of Hadrons (https://github.com/aportelli/Hadrons)
  *
- * Copyright (C) 2015 - 2020
+ * Copyright (C) 2015 - 2023
  *
  * Author: Antonin Portelli <antonin.portelli@me.com>
  * Author: Raoul Hodgson <raoul.hodgson@ed.ac.uk>
@@ -79,6 +79,7 @@ public:
 };
 
 MODULE_REGISTER_TMP(EigenPackLCDecompress    , ARG(TEigenPackLCDecompress<FIMPL , HADRONS_DEFAULT_LANCZOS_NBASIS>), MUtilities);
+MODULE_REGISTER_TMP(EigenPackLCDecompress200 , ARG(TEigenPackLCDecompress<FIMPL , 200>), MUtilities);
 MODULE_REGISTER_TMP(EigenPackLCDecompress250 , ARG(TEigenPackLCDecompress<FIMPL , 250>), MUtilities);
 MODULE_REGISTER_TMP(EigenPackLCDecompress400 , ARG(TEigenPackLCDecompress<FIMPL , 400>), MUtilities);
 MODULE_REGISTER_TMP(EigenPackLCDecompress1000 , ARG(TEigenPackLCDecompress<FIMPL , 1000>), MUtilities);
@@ -87,6 +88,7 @@ MODULE_REGISTER_TMP(EigenPackLCDecompress1000 , ARG(TEigenPackLCDecompress<FIMPL
 MODULE_REGISTER_TMP(EigenPackLCDecompress1000Io32 , ARG(TEigenPackLCDecompress<FIMPLF , 1000, FIMPL>), MUtilities);
 
 MODULE_REGISTER_TMP(EigenPackLCDecompressF   , ARG(TEigenPackLCDecompress<FIMPLF, HADRONS_DEFAULT_LANCZOS_NBASIS>), MUtilities);
+MODULE_REGISTER_TMP(EigenPackLCDecompress200F, ARG(TEigenPackLCDecompress<FIMPLF, 200>), MUtilities);
 MODULE_REGISTER_TMP(EigenPackLCDecompress250F, ARG(TEigenPackLCDecompress<FIMPLF, 250>), MUtilities);
 MODULE_REGISTER_TMP(EigenPackLCDecompress400F, ARG(TEigenPackLCDecompress<FIMPLF, 400>), MUtilities);
 MODULE_REGISTER_TMP(EigenPackLCDecompress1000F, ARG(TEigenPackLCDecompress<FIMPLF, 1000>), MUtilities);

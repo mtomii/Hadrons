@@ -1,7 +1,7 @@
 /*
  * Serialization.hpp, part of Hadrons (https://github.com/aportelli/Hadrons)
  *
- * Copyright (C) 2015 - 2022
+ * Copyright (C) 2015 - 2023
  *
  * Author: Antonin Portelli <antonin.portelli@me.com>
  * Author: Ryan Hill <rchrys.hill@gmail.com>
@@ -86,6 +86,13 @@ public:
     {
         this->hold<T>(obj);
         return *this;
+    }
+
+    // Get back object
+    template<typename T>
+    const T &get(void)
+    {
+        return dynamic_cast<const Model<T> *>(this->object.get())->serializable;
     }
 
     // ############ //

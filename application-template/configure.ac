@@ -28,18 +28,15 @@ fi
 if test x"$CXX" == x ; then
     CXX="`hadrons-config --cxx`"
 elif test "$CXX" != "`hadrons-config --cxx`" ; then
-    AC_MSG_WARN([CXX differs from that reported by hadrons-config])
+    HADRONS_CXX="`hadrons-config --cxx`"
+    AC_MSG_WARN([CXX differs from that reported by hadrons-config: "$CXX" vs "$HADRONS_CXX"])
 fi
 if test x"$CXXLD" == x ; then
     CXXLD="`hadrons-config --cxxld`"
 elif test "$CXXLD" != "`hadrons-config --cxxld`" ; then
-    AC_MSG_WARN([CXXLD differs from that reported by hadrons-config])
+    HADRONS_CXXLD="`hadrons-config --cxxld`"
+    AC_MSG_WARN([CXXLD differs from that reported by hadrons-config: "$CXXLD" vs "$HADRONS_CXXLD"])
 fi
-CXXFLAGS="$CXXFLAGS `hadrons-config --cxxflags`"
-LDFLAGS="$LDFLAGS `hadrons-config --ldflags`"
-CXXFLAGS="$AM_CXXFLAGS $CXXFLAGS"
-LDFLAGS="$AM_LDFLAGS $LDFLAGS"
-LIBS=" -lHadrons $LIBS `hadrons-config --libs`"
 
 # Checks for programs.
 AC_PROG_CXX
@@ -47,6 +44,12 @@ AC_PROG_CC
 AC_PROG_RANLIB
 AM_PROG_AR
 AC_LANG([C++])
+
+CXXFLAGS="$CXXFLAGS `hadrons-config --cxxflags`"
+LDFLAGS="$LDFLAGS `hadrons-config --ldflags`"
+CXXFLAGS="$AM_CXXFLAGS $CXXFLAGS"
+LDFLAGS="$AM_LDFLAGS $LDFLAGS"
+LIBS=" -lHadrons $LIBS `hadrons-config --libs`"
 
 AC_MSG_CHECKING([that a minimal Grid/Hadrons program compiles]);
 AC_LINK_IFELSE(

@@ -1,7 +1,7 @@
 /*
  * EigenPackLCCompress.hpp, part of Hadrons (https://github.com/aportelli/Hadrons)
  *
- * Copyright (C) 2015 - 2020
+ * Copyright (C) 2015 - 2023
  *
  * Author: Antonin Portelli <antonin.portelli@me.com>
  * Author: Raoul Hodgson <raoul.hodgson@ed.ac.uk>
@@ -79,10 +79,12 @@ public:
 };
 
 MODULE_REGISTER_TMP(EigenPackLCCompress    , ARG(TEigenPackLCCompress<FIMPL , HADRONS_DEFAULT_LANCZOS_NBASIS>), MUtilities);
+MODULE_REGISTER_TMP(EigenPackLCCompress200 , ARG(TEigenPackLCCompress<FIMPL , 200>), MUtilities);
 MODULE_REGISTER_TMP(EigenPackLCCompress250 , ARG(TEigenPackLCCompress<FIMPL , 250>), MUtilities);
 MODULE_REGISTER_TMP(EigenPackLCCompress400 , ARG(TEigenPackLCCompress<FIMPL , 400>), MUtilities);
 
 MODULE_REGISTER_TMP(EigenPackLCCompressF   , ARG(TEigenPackLCCompress<FIMPLF, HADRONS_DEFAULT_LANCZOS_NBASIS>), MUtilities);
+MODULE_REGISTER_TMP(EigenPackLCCompress200F, ARG(TEigenPackLCCompress<FIMPLF, 200>), MUtilities);
 MODULE_REGISTER_TMP(EigenPackLCCompress250F, ARG(TEigenPackLCCompress<FIMPLF, 250>), MUtilities);
 MODULE_REGISTER_TMP(EigenPackLCCompress400F, ARG(TEigenPackLCCompress<FIMPLF, 400>), MUtilities);
 
@@ -150,17 +152,11 @@ void TEigenPackLCCompress<FImpl, nBasis, FImplIo>::execute(void)
 
     coarsePack.record = finePack.record;
 
-    LOG(Message) << "Copying lowest " << sizeFine << " fine vectors as basis" << std::endl;
+    LOG(Message) << "Copying lowest " << sizeFine << " fine vectors for basis generation" << std::endl;
     for (unsigned int i=0; i<sizeFine; i++)
     {
         coarsePack.eval[i] = finePack.eval[i];
         coarsePack.evec[i] = finePack.evec[i];
-    }
-
-    if (!par().output.empty())
-    {
-        LOG(Message) << "Write " << sizeFine << " fine basis vectors" << std::endl;
-        coarsePack.writeFine(par().output, par().multiFile, vm().getTrajectory());
     }
 
     auto blockSize = strToVec<int>(par().blockSize);
@@ -172,6 +168,12 @@ void TEigenPackLCCompress<FImpl, nBasis, FImplIo>::execute(void)
     blockOrthonormalize(innerProduct,coarsePack.evec);
     LOG(Message) <<" Block Gramm-Schmidt pass 2"<<std::endl;
     blockOrthonormalize(innerProduct,coarsePack.evec);
+
+    if (!par().output.empty())
+    {
+        LOG(Message) << "Write " << sizeFine << " fine basis vectors" << std::endl;
+        coarsePack.writeFine(par().output, par().multiFile, vm().getTrajectory());
+    }
 
     LOG(Message) << "Projecting " << sizeCoarse << " coarse eigenvectors" << std::endl;
     for (unsigned int i=0; i<finePack.evec.size(); i++)
@@ -186,8 +188,6 @@ void TEigenPackLCCompress<FImpl, nBasis, FImplIo>::execute(void)
         LOG(Message) << "Write " << sizeCoarse << " coarse vectors" << std::endl;
         coarsePack.writeCoarse(par().output, par().multiFile, vm().getTrajectory());
     }
-
-
 }
 
 END_MODULE_NAMESPACE

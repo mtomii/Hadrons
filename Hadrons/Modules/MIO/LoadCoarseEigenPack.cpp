@@ -1,7 +1,7 @@
 /*
  * LoadCoarseEigenPack.cpp, part of Hadrons (https://github.com/aportelli/Hadrons)
  *
- * Copyright (C) 2015 - 2020
+ * Copyright (C) 2015 - 2023
  *
  * Author: Antonin Portelli <antonin.portelli@me.com>
  * Author: Raoul Hodgson <raoul.hodgson@ed.ac.uk>
@@ -31,11 +31,13 @@ using namespace Hadrons;
 using namespace MIO;
 
 template class HADRONS_NAMESPACE::MIO::TLoadCoarseEigenPack<CoarseFermionEigenPack<FIMPL,HADRONS_DEFAULT_LANCZOS_NBASIS>, GIMPL>;
+template class HADRONS_NAMESPACE::MIO::TLoadCoarseEigenPack<CoarseFermionEigenPack<FIMPL,200>, GIMPL>;
 template class HADRONS_NAMESPACE::MIO::TLoadCoarseEigenPack<CoarseFermionEigenPack<FIMPL,250>, GIMPL>;
 template class HADRONS_NAMESPACE::MIO::TLoadCoarseEigenPack<CoarseFermionEigenPack<FIMPL,400>, GIMPL>;
 template class HADRONS_NAMESPACE::MIO::TLoadCoarseEigenPack<CoarseFermionEigenPack<FIMPL,1000>, GIMPL>;
 
 template class HADRONS_NAMESPACE::MIO::TLoadCoarseEigenPack<CoarseFermionEigenPack<FIMPLF,HADRONS_DEFAULT_LANCZOS_NBASIS>, GIMPLF>;
+template class HADRONS_NAMESPACE::MIO::TLoadCoarseEigenPack<CoarseFermionEigenPack<FIMPLF,200>, GIMPLF>;
 template class HADRONS_NAMESPACE::MIO::TLoadCoarseEigenPack<CoarseFermionEigenPack<FIMPLF,250>, GIMPLF>;
 template class HADRONS_NAMESPACE::MIO::TLoadCoarseEigenPack<CoarseFermionEigenPack<FIMPLF,400>, GIMPLF>;
 template class HADRONS_NAMESPACE::MIO::TLoadCoarseEigenPack<CoarseFermionEigenPack<FIMPLF,1000>, GIMPLF>;

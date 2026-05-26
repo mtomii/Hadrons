@@ -1,5 +1,5 @@
-AM_CXXFLAGS += -I$(top_srcdir)
-
+AM_CXXFLAGS += -I$(top_srcdir) 
+AM_CFLAGS += -DSQLITE_ENABLE_MATH_FUNCTIONS
 lib_LIBRARIES = libHadrons.a
 
 include modules.inc
@@ -11,6 +11,7 @@ libHadrons_a_SOURCES = \
  	Environment.cpp     \
 	Exceptions.cpp      \
  	Global.cpp          \
+	LeptonImpl.cpp      \
 	StatLogger.cpp      \
  	Module.cpp		      \
 	TimerArray.cpp      \
@@ -41,6 +42,7 @@ nobase_libHadrons_a_HEADERS = \
 	Modules.hpp               \
 	ModuleFactory.hpp         \
 	NamedTensor.hpp           \
+	Random.hpp                \
 	Serialization.hpp         \
 	Solver.hpp                \
 	SqlEntry.hpp              \

@@ -1,7 +1,7 @@
 /*
  * Unit.hpp, part of Hadrons (https://github.com/aportelli/Hadrons)
  *
- * Copyright (C) 2015 - 2020
+ * Copyright (C) 2015 - 2023
  *
  * Author: Antonin Portelli <antonin.portelli@me.com>
  *
@@ -59,6 +59,7 @@ protected:
 };
 
 MODULE_REGISTER_TMP(Unit, TUnit<GIMPL>, MGauge);
+MODULE_REGISTER_TMP(UnitU1, TUnit<PeriodicGImplU1>, MGauge);
 
 /******************************************************************************
 *                            TUnit implementation                             *
@@ -98,7 +99,7 @@ void TUnit<GImpl>::execute(void)
     LOG(Message) << "Creating unit gauge configuration" << std::endl;
     
     auto &U = envGet(GaugeField, getName());
-    GImpl::ColdConfiguration(rng4d(), U);
+    Group::ColdConfiguration(U);
 }
 
 END_MODULE_NAMESPACE

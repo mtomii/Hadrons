@@ -1,9 +1,10 @@
 /*
  * MixedPrecisionRBPrecCG.hpp, part of Hadrons (https://github.com/aportelli/Hadrons)
  *
- * Copyright (C) 2015 - 2020
+ * Copyright (C) 2015 - 2023
  *
  * Author: Antonin Portelli <antonin.portelli@me.com>
+ * Author: Fionn O hOgain <fionn.o.hogain@ed.ac.uk>
  * Author: Peter Boyle <paboyle@ph.ed.ac.uk>
  *
  * Hadrons is free software: you can redistribute it and/or modify
@@ -94,6 +95,7 @@ public:
 };
 
 MODULE_REGISTER_TMP(MixedPrecisionRBPrecCG, ARG(TMixedPrecisionRBPrecCG<FIMPLF, FIMPLD>), MSolver);
+MODULE_REGISTER_TMP(MixedPrecisionRBPrecCGLepton, ARG(TMixedPrecisionRBPrecCG<LIMPLF, LIMPLD>), MSolver);
 MODULE_REGISTER_TMP(ZMixedPrecisionRBPrecCG, ARG(TMixedPrecisionRBPrecCG<ZFIMPLF, ZFIMPLD>), MSolver);
 
 /******************************************************************************

@@ -1,3 +1,28 @@
+/*
+ * CoarseDeflation.hpp, part of Hadrons (https://github.com/aportelli/Hadrons)
+ *
+ * Copyright (C) 2015 - 2023
+ *
+ * Author: Raoul Hodgson <raoul.hodgson@ed.ac.uk>
+ *
+ * Hadrons is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * Hadrons is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Hadrons.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * See the full license in the file "LICENSE" in the top level distribution 
+ * directory.
+ */
+
+/*  END LEGAL */
 #ifndef Hadrons_MGuesser_CoarseDeflation_hpp_
 #define Hadrons_MGuesser_CoarseDeflation_hpp_
 
@@ -44,12 +69,14 @@ public:
 };
 
 MODULE_REGISTER_TMP(CoarseDeflation    , ARG(TCoarseDeflation<CoarseFermionEigenPack<FIMPL ,HADRONS_DEFAULT_LANCZOS_NBASIS>>), MGuesser);
+MODULE_REGISTER_TMP(CoarseDeflation200 , ARG(TCoarseDeflation<CoarseFermionEigenPack<FIMPL ,200>>), MGuesser);
 MODULE_REGISTER_TMP(CoarseDeflation250 , ARG(TCoarseDeflation<CoarseFermionEigenPack<FIMPL ,250>>), MGuesser);
 MODULE_REGISTER_TMP(CoarseDeflation400 , ARG(TCoarseDeflation<CoarseFermionEigenPack<FIMPL ,400>>), MGuesser);
 MODULE_REGISTER_TMP(CoarseDeflation1000 , ARG(TCoarseDeflation<CoarseFermionEigenPack<FIMPL ,1000>>), MGuesser);
 
 
 MODULE_REGISTER_TMP(CoarseDeflationF   , ARG(TCoarseDeflation<CoarseFermionEigenPack<FIMPLF,HADRONS_DEFAULT_LANCZOS_NBASIS>>), MGuesser);
+MODULE_REGISTER_TMP(CoarseDeflation200F, ARG(TCoarseDeflation<CoarseFermionEigenPack<FIMPLF,200>>), MGuesser);
 MODULE_REGISTER_TMP(CoarseDeflation250F, ARG(TCoarseDeflation<CoarseFermionEigenPack<FIMPLF,250>>), MGuesser);
 MODULE_REGISTER_TMP(CoarseDeflation400F, ARG(TCoarseDeflation<CoarseFermionEigenPack<FIMPLF,400>>), MGuesser);
 MODULE_REGISTER_TMP(CoarseDeflation1000F, ARG(TCoarseDeflation<CoarseFermionEigenPack<FIMPLF,1000>>), MGuesser);

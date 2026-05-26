@@ -24,12 +24,14 @@ fi
 if test x"$CXX" == x ; then
     CXX="`grid-config --cxx`"
 elif test "$CXX" != "`grid-config --cxx`" ; then
-    AC_MSG_WARN([CXX differs from that reported by grid-config])
+    GRID_CXX="`grid-config --cxx`"
+    AC_MSG_WARN([CXX differs from that reported by grid-config: "$CXX" vs "$GRID_CXX"])
 fi
 if test x"$CXXLD" == x ; then
     CXXLD="`grid-config --cxxld`"
 elif test "$CXXLD" != "`grid-config --cxxld`" ; then
-    AC_MSG_WARN([CXXLD differs from that reported by grid-config])
+    GRID_CXXLD="`grid-config --cxxld`"
+    AC_MSG_WARN([CXXLD differs from that reported by grid-config: "$CXXLD" vs "$GRID_CXXLD"])
 fi
 CXXFLAGS="$CXXFLAGS `grid-config --cxxflags`"
 CXXFLAGS="$AM_CXXFLAGS $CXXFLAGS"
@@ -76,6 +78,7 @@ HADRONS_SHA=`git rev-parse HEAD`
 HADRONS_BRANCH=`git rev-parse --abbrev-ref HEAD`
 
 AC_SUBST([CXXLD])
+AC_SUBST([AM_CFLAGS])
 AC_SUBST([AM_CXXFLAGS])
 AC_SUBST([AM_LDFLAGS])
 AC_SUBST([HADRONS_CXX])

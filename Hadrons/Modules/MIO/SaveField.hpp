@@ -1,9 +1,10 @@
 /*
  * SaveField.hpp, part of Hadrons (https://github.com/aportelli/Hadrons)
  *
- * Copyright (C) 2015 - 2020
+ * Copyright (C) 2015 - 2023
  *
  * Author: Antonin Portelli <antonin.portelli@me.com>
+ * Author: Michael Marshall <43034299+mmphys@users.noreply.github.com>
  *
  * Hadrons is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -83,6 +84,7 @@ MODULE_REGISTER_TMP(SavePropagatorIo32, ARG(TSaveField<FIMPL::PropagatorField, F
 #endif
 MODULE_REGISTER_TMP(SaveColourMatrixField, TSaveField<GIMPL::GaugeLinkField>, MIO);
 MODULE_REGISTER_TMP(SaveEmField, TSaveField<TEmFieldGenerator<vComplex>::GaugeField>, MIO);
+MODULE_REGISTER_TMP(SaveComplex, TSaveField<LatticeComplex>, MIO);
 
 /******************************************************************************
  *                 TSaveField implementation                             *

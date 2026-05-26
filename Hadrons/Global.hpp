@@ -1,10 +1,14 @@
 /*
  * Global.hpp, part of Hadrons (https://github.com/aportelli/Hadrons)
  *
- * Copyright (C) 2015 - 2020
+ * Copyright (C) 2015 - 2023
  *
  * Author: Antonin Portelli <antonin.portelli@me.com>
+ * Author: Fabian Joswig <fabian.joswig@ed.ac.uk>
+ * Author: Felix Erben <felix.erben@ed.ac.uk>
  * Author: Peter Boyle <paboyle@ph.ed.ac.uk>
+ * Author: Simon Bürger <simon.buerger@rwth-aachen.de>
+ * Author: felixerben <felix.erben@ed.ac.uk>
  * Author: ferben <ferben@debian.felix.com>
  *
  * Hadrons is free software: you can redistribute it and/or modify
@@ -73,12 +77,32 @@ using Grid::operator>>;
 #define _HADRONS_IMPL(impl, sub) impl##sub
 #define HADRONS_IMPL(impl, sub)   _HADRONS_IMPL(impl, sub)
 
+typedef Grid::WilsonImpl<Grid::vComplex, 
+                         Grid::FundamentalRep<1,Grid::GroupName::SU>, 
+                         Grid::CoeffReal> LeptonWilsonImplR;
+typedef Grid::WilsonImpl<Grid::vComplexF, 
+                         Grid::FundamentalRep<1,Grid::GroupName::SU>, 
+                         Grid::CoeffReal> LeptonWilsonImplF;
+typedef Grid::WilsonImpl<Grid::vComplexD, 
+                         Grid::FundamentalRep<1,Grid::GroupName::SU>, 
+                         Grid::CoeffReal> LeptonWilsonImplD;
+typedef Grid::PeriodicGaugeImpl<Grid::GaugeImplTypes<Grid::vComplex, 1, 12, Grid::SU<1>>> PeriodicGImplU1;
+typedef Grid::PeriodicGaugeImpl<Grid::GaugeImplTypes<Grid::vComplexF, 1, 12, Grid::SU<1>>> PeriodicGImplU1F;
+typedef Grid::PeriodicGaugeImpl<Grid::GaugeImplTypes<Grid::vComplexD, 1, 12, Grid::SU<1>>> PeriodicGImplU1D;
+
 #ifndef FIMPLBASE
 #define FIMPLBASE WilsonImpl
 #endif
 #define FIMPL  HADRONS_IMPL(FIMPLBASE, R)
 #define FIMPLF HADRONS_IMPL(FIMPLBASE, F)
 #define FIMPLD HADRONS_IMPL(FIMPLBASE, D)
+
+#ifndef LIMPLBASE
+#define LIMPLBASE LeptonWilsonImpl
+#endif
+#define LIMPL  HADRONS_IMPL(LIMPLBASE, R)
+#define LIMPLF HADRONS_IMPL(LIMPLBASE, F)
+#define LIMPLD HADRONS_IMPL(LIMPLBASE, D)
 
 #ifndef ZFIMPLBASE
 #define ZFIMPLBASE ZWilsonImpl
@@ -249,6 +273,15 @@ std::string typeName(void)
     return typeName(typeIdPt<T>());
 }
 
+// test if string is white-space separated vector
+// return false with just one element
+// fragile... will be better with JSON inputs and proper array support
+template <typename T>
+bool isVector(const std::string s)
+{
+    return (strToVec<T>(s).size() > 1);
+}
+
 // default writers/readers
 extern const std::string resultFileExt;
 
@@ -292,6 +325,7 @@ void        makeFileDir(const std::string filename, GridBase *g = nullptr);
 #define HADRONS_STR(x) _HADRONS_STR(x)
 
 // pretty print time profile
+std::string timeString(const GridTime t);
 void printTimeProfile(const std::map<std::string, GridTime> &timing, GridTime total);
 
 // token replacement utility

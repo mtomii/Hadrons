@@ -1,7 +1,7 @@
 /*
  * Module.cpp, part of Hadrons (https://github.com/aportelli/Hadrons)
  *
- * Copyright (C) 2015 - 2020
+ * Copyright (C) 2015 - 2023
  *
  * Author: Antonin Portelli <antonin.portelli@me.com>
  *
@@ -164,6 +164,22 @@ GridSerialRNG & ModuleBase::rngSerial(void)
     {
         seed_ = seed;
         LOG(Message) << "Seeding Serial RNG " << &r << " with string '" 
+                     << seed_ << "'" << std::endl;
+        r.SeedUniqueString(seed_);
+    }
+
+    return r;
+}
+
+HadronsSerialRNG & ModuleBase::rngSerialHadrons(void)
+{
+    auto &r = *env().getHadronsSerialRng();
+    const std::string seed = getSeed();
+
+    if (seed != seed_)
+    {
+        seed_ = seed;
+        LOG(Message) << "Seeding Hadrons Serial RNG " << &r << " with string '" 
                      << seed_ << "'" << std::endl;
         r.SeedUniqueString(seed_);
     }

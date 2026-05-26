@@ -1,7 +1,7 @@
 /*
  * LoadCoarseEigenPack.hpp, part of Hadrons (https://github.com/aportelli/Hadrons)
  *
- * Copyright (C) 2015 - 2020
+ * Copyright (C) 2015 - 2023
  *
  * Author: Antonin Portelli <antonin.portelli@me.com>
  * Author: Raoul Hodgson <raoul.hodgson@ed.ac.uk>
@@ -84,11 +84,13 @@ public:
 };
 
 MODULE_REGISTER_TMP(LoadCoarseFermionEigenPack   , ARG(TLoadCoarseEigenPack<CoarseFermionEigenPack<FIMPL, HADRONS_DEFAULT_LANCZOS_NBASIS>, GIMPL>), MIO);
+MODULE_REGISTER_TMP(LoadCoarseFermionEigenPack200, ARG(TLoadCoarseEigenPack<CoarseFermionEigenPack<FIMPL, 200>, GIMPL>), MIO);
 MODULE_REGISTER_TMP(LoadCoarseFermionEigenPack250, ARG(TLoadCoarseEigenPack<CoarseFermionEigenPack<FIMPL, 250>, GIMPL>), MIO);
 MODULE_REGISTER_TMP(LoadCoarseFermionEigenPack400, ARG(TLoadCoarseEigenPack<CoarseFermionEigenPack<FIMPL, 400>, GIMPL>), MIO);
 MODULE_REGISTER_TMP(LoadCoarseFermionEigenPack1000, ARG(TLoadCoarseEigenPack<CoarseFermionEigenPack<FIMPL, 1000>, GIMPL>), MIO);
 
 MODULE_REGISTER_TMP(LoadCoarseFermionEigenPackF   , ARG(TLoadCoarseEigenPack<CoarseFermionEigenPack<FIMPLF, HADRONS_DEFAULT_LANCZOS_NBASIS>, GIMPLF>), MIO);
+MODULE_REGISTER_TMP(LoadCoarseFermionEigenPack200F, ARG(TLoadCoarseEigenPack<CoarseFermionEigenPack<FIMPLF, 200>, GIMPLF>), MIO);
 MODULE_REGISTER_TMP(LoadCoarseFermionEigenPack250F, ARG(TLoadCoarseEigenPack<CoarseFermionEigenPack<FIMPLF, 250>, GIMPLF>), MIO);
 MODULE_REGISTER_TMP(LoadCoarseFermionEigenPack400F, ARG(TLoadCoarseEigenPack<CoarseFermionEigenPack<FIMPLF, 400>, GIMPLF>), MIO);
 MODULE_REGISTER_TMP(LoadCoarseFermionEigenPack1000F, ARG(TLoadCoarseEigenPack<CoarseFermionEigenPack<FIMPLF, 1000>, GIMPLF>), MIO);

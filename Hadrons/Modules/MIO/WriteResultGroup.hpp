@@ -1,7 +1,7 @@
 /*
  * WriteResultGroup.hpp, part of Hadrons (https://github.com/aportelli/Hadrons)
  *
- * Copyright (C) 2015 - 2022
+ * Copyright (C) 2015 - 2023
  *
  * Author: Antonin Portelli <antonin.portelli@me.com>
  * Author: Ryan Hill <rchrys.hill@gmail.com>
@@ -126,7 +126,7 @@ void TWriteResultGroup<Placeholder>::execute(void)
     // Pass a blank string to dump the unpacked group the file, rather than
     // adding a forced and useless outer group around the result
     saveResult(par().output, "", resultGroup);
-    LOG(Message) << "Finshed writing collated results into file '" << par().output << "'." << std::endl;
+    LOG(Message) << "Finished writing collated results into file '" << par().output << "'." << std::endl;
 }
 
 END_MODULE_NAMESPACE
