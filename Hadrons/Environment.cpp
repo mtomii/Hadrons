@@ -106,7 +106,8 @@ Coordinate Environment::simdDecomposition(const unsigned int nd, const unsigned 
     {
         bool maskValid = false;
 
-        for (auto d: simdMask_) { maskValid = maskValid || simdMask_[d];}
+	//for (auto d: simdMask_) { maskValid = maskValid || simdMask_[d];}
+	for (unsigned int d = 0; d < simdMask_.size(); ++d) { maskValid = maskValid || simdMask_[d]; }
         if (!maskValid)
         {
             HADRONS_ERROR(Size, "SIMD mask invalid");
