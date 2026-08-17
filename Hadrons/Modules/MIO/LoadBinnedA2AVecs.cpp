@@ -40,5 +40,6 @@ template class Grid::Hadrons::MIO::TLoadBinnedA2AVecs<FIMPL, 173>;
 template class Grid::Hadrons::MIO::TLoadBinnedA2AVecs<FIMPL, 192>;
 template class Grid::Hadrons::MIO::TLoadBinnedA2AVecs<FIMPL, 196>;
 template class Grid::Hadrons::MIO::TLoadBinnedA2AVecs<FIMPL, 197>;
+template class Grid::Hadrons::MIO::TLoadBinnedA2AVecs<FIMPL, 200>;
 template class Grid::Hadrons::MIO::TLoadBinnedA2AVecs<FIMPL, 216>;
 template class Grid::Hadrons::MIO::TLoadBinnedA2AVecs<FIMPL, 298>;

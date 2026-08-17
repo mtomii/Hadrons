@@ -20,20 +20,17 @@
  * You should have received a copy of the GNU General Public License
  * along with Hadrons.  If not, see <http://www.gnu.org/licenses/>.
  *
- * See the full license in the file "LICENSE" in the top level distribution 
+ * See the full license in the file "LICENSE" in the top level distribution
  * directory.
  */
-
 /*  END LEGAL */
 #ifndef A2A_Vectors_hpp_
 #define A2A_Vectors_hpp_
-
 #include <Hadrons/Global.hpp>
 #include <Hadrons/Environment.hpp>
 #include <Hadrons/Solver.hpp>
 
 BEGIN_HADRONS_NAMESPACE
-
 /******************************************************************************
  *                 Class to generate V & W all-to-all vectors                 *
  ******************************************************************************/
@@ -44,31 +41,31 @@ public:
     FERM_TYPE_ALIASES(FImpl,);
     SOLVER_TYPE_ALIASES(FImpl,);
 public:
+    A2AVectorsSchurDiagTwo(FMat &action);
     A2AVectorsSchurDiagTwo(FMat &action, Solver &solver);
     virtual ~A2AVectorsSchurDiagTwo(void) = default;
-    void makeLowModeV(FermionField &vout, 
+    void makeLowModeV(FermionField &vout,
                       const FermionField &evec, const Real &eval);
-    void makeLowModeV5D(FermionField &vout_4d, FermionField &vout_5d, 
+    void makeLowModeV5D(FermionField &vout_4d, FermionField &vout_5d,
                         const FermionField &evec, const Real &eval);
-    void makeLowModeW(FermionField &wout, 
+    void makeLowModeW(FermionField &wout,
                       const FermionField &evec, const Real &eval);
-    void makeLowModeW5D(FermionField &wout_4d, FermionField &wout_5d, 
+    void makeLowModeW5D(FermionField &wout_4d, FermionField &wout_5d,
                         const FermionField &evec, const Real &eval);
     void makeHighModeV(FermionField &vout, const FermionField &noise);
-    void makeHighModeV5D(FermionField &vout_4d, FermionField &vout_5d, 
+    void makeHighModeV5D(FermionField &vout_4d, FermionField &vout_5d,
                          const FermionField &noise_5d);
     void makeHighModeW(FermionField &wout, const FermionField &noise);
-    void makeHighModeW5D(FermionField &vout_5d, FermionField &wout_5d, 
+    void makeHighModeW5D(FermionField &vout_5d, FermionField &wout_5d,
                          const FermionField &noise_5d);
 private:
     FMat                                     &action_;
-    Solver                                   &solver_;
+    Solver                                   *solver_;
     GridBase                                 *fGrid_, *frbGrid_, *gGrid_;
     bool                                     is5d_;
     FermionField                             src_o_, sol_e_, sol_o_, tmp_, tmp5_;
     SchurDiagTwoOperator<FMat, FermionField> op_;
 };
-
 /******************************************************************************
  *                  Methods for V & W all-to-all vectors I/O                  *
  ******************************************************************************/
@@ -83,17 +80,25 @@ public:
     };
 public:
     template <typename Field>
-    static void write(const std::string fileStem, std::vector<Field> &vec, 
+    static void write(const std::string fileStem, std::vector<Field> &vec,
                       const bool multiFile, const int trajectory = -1);
     template <typename Field>
     static void read(std::vector<Field> &vec, const std::string fileStem,
                      const bool multiFile, const int trajectory = -1);
+    static void openWriter(ScidacWriter &writer, const std::string fileStem,
+                           GridBase *grid, const int trajectory = -1);
+    template <typename Field>
+    static void writeRecord(ScidacWriter &writer, Field &field,
+                            const unsigned int index);
+    template <typename Field>
+    static void writeElement(const std::string fileStem, Field &field,
+                             const unsigned int index,
+                             const int trajectory = -1);
 private:
-    static inline std::string vecFilename(const std::string stem, const int traj, 
+    static inline std::string vecFilename(const std::string stem, const int traj,
                                           const bool multiFile)
     {
         std::string t = (traj < 0) ? "" : ("." + std::to_string(traj));
-
         if (multiFile)
         {
             return stem + t;
@@ -103,15 +108,21 @@ private:
             return stem + t + ".bin";
         }
     }
+    static inline std::string elementFilename(const std::string stem,
+                                              const int traj,
+                                              const unsigned int index)
+    {
+        return vecFilename(stem, traj, true) + "/elem"
+               + std::to_string(index) + ".bin";
+    }
 };
-
 /******************************************************************************
  *               A2AVectorsSchurDiagTwo template implementation               *
  ******************************************************************************/
 template <typename FImpl>
-A2AVectorsSchurDiagTwo<FImpl>::A2AVectorsSchurDiagTwo(FMat &action, Solver &solver)
+A2AVectorsSchurDiagTwo<FImpl>::A2AVectorsSchurDiagTwo(FMat &action)
 : action_(action)
-, solver_(solver)
+, solver_(nullptr)
 , fGrid_(action_.FermionGrid())
 , frbGrid_(action_.FermionRedBlackGrid())
 , gGrid_(action_.GaugeGrid())
@@ -122,7 +133,20 @@ A2AVectorsSchurDiagTwo<FImpl>::A2AVectorsSchurDiagTwo(FMat &action, Solver &solv
 , tmp5_(fGrid_)
 , op_(action_)
 {}
-
+template <typename FImpl>
+A2AVectorsSchurDiagTwo<FImpl>::A2AVectorsSchurDiagTwo(FMat &action, Solver &solver)
+: action_(action)
+, solver_(&solver)
+, fGrid_(action_.FermionGrid())
+, frbGrid_(action_.FermionRedBlackGrid())
+, gGrid_(action_.GaugeGrid())
+, src_o_(frbGrid_)
+, sol_e_(frbGrid_)
+, sol_o_(frbGrid_)
+, tmp_(frbGrid_)
+, tmp5_(fGrid_)
+, op_(action_)
+{}
 template <typename FImpl>
 void A2AVectorsSchurDiagTwo<FImpl>::makeLowModeV(FermionField &vout, const FermionField &evec, const Real &eval)
 {
@@ -130,7 +154,6 @@ void A2AVectorsSchurDiagTwo<FImpl>::makeLowModeV(FermionField &vout, const Fermi
     src_o_.Checkerboard() = Odd;
     pickCheckerboard(Even, sol_e_, vout);
     pickCheckerboard(Odd, sol_o_, vout);
-
     /////////////////////////////////////////////////////
     // v_ie = -(1/eval_i) * MeeInv Meo MooInv evec_i
     /////////////////////////////////////////////////////
@@ -142,7 +165,6 @@ void A2AVectorsSchurDiagTwo<FImpl>::makeLowModeV(FermionField &vout, const Fermi
     assert(tmp_.Checkerboard() == Even);
     sol_e_ = (-1.0 / eval) * tmp_;
     assert(sol_e_.Checkerboard() == Even);
-
     /////////////////////////////////////////////////////
     // v_io = (1/eval_i) * MooInv evec_i
     /////////////////////////////////////////////////////
@@ -155,14 +177,12 @@ void A2AVectorsSchurDiagTwo<FImpl>::makeLowModeV(FermionField &vout, const Fermi
     setCheckerboard(vout, sol_o_);
     assert(sol_o_.Checkerboard() == Odd);
 }
-
 template <typename FImpl>
 void A2AVectorsSchurDiagTwo<FImpl>::makeLowModeV5D(FermionField &vout_4d, FermionField &vout_5d, const FermionField &evec, const Real &eval)
 {
     makeLowModeV(vout_5d, evec, eval);
     action_.ExportPhysicalFermionSolution(vout_5d, vout_4d);
 }
-
 template <typename FImpl>
 void A2AVectorsSchurDiagTwo<FImpl>::makeLowModeW(FermionField &wout, const FermionField &evec, const Real &eval)
 {
@@ -170,7 +190,6 @@ void A2AVectorsSchurDiagTwo<FImpl>::makeLowModeW(FermionField &wout, const Fermi
     src_o_.Checkerboard() = Odd;
     pickCheckerboard(Even, sol_e_, wout);
     pickCheckerboard(Odd, sol_o_, wout);
-
     /////////////////////////////////////////////////////
     // w_ie = - MeeInvDag MoeDag Doo evec_i
     /////////////////////////////////////////////////////
@@ -181,7 +200,6 @@ void A2AVectorsSchurDiagTwo<FImpl>::makeLowModeW(FermionField &wout, const Fermi
     action_.MooeeInvDag(sol_e_, tmp_);
     assert(tmp_.Checkerboard() == Even);
     sol_e_ = (-1.0) * tmp_;
-
     /////////////////////////////////////////////////////
     // w_io = Doo evec_i
     /////////////////////////////////////////////////////
@@ -192,57 +210,48 @@ void A2AVectorsSchurDiagTwo<FImpl>::makeLowModeW(FermionField &wout, const Fermi
     setCheckerboard(wout, sol_o_);
     assert(sol_o_.Checkerboard() == Odd);
 }
-
 template <typename FImpl>
-void A2AVectorsSchurDiagTwo<FImpl>::makeLowModeW5D(FermionField &wout_4d, 
-                                                   FermionField &wout_5d, 
-                                                   const FermionField &evec, 
+void A2AVectorsSchurDiagTwo<FImpl>::makeLowModeW5D(FermionField &wout_4d,
+                                                   FermionField &wout_5d,
+                                                   const FermionField &evec,
                                                    const Real &eval)
 {
     makeLowModeW(tmp5_, evec, eval);
     action_.DminusDag(tmp5_, wout_5d);
     action_.ExportPhysicalFermionSource(wout_5d, wout_4d);
 }
-
 template <typename FImpl>
-void A2AVectorsSchurDiagTwo<FImpl>::makeHighModeV(FermionField &vout, 
+void A2AVectorsSchurDiagTwo<FImpl>::makeHighModeV(FermionField &vout,
                                                   const FermionField &noise)
 {
-    solver_(vout, noise);
+    assert(solver_ != nullptr);
+    (*solver_)(vout, noise);
 }
-
 template <typename FImpl>
-void A2AVectorsSchurDiagTwo<FImpl>::makeHighModeV5D(FermionField &vout_4d, 
-                                                    FermionField &vout_5d, 
+void A2AVectorsSchurDiagTwo<FImpl>::makeHighModeV5D(FermionField &vout_4d,
+                                                    FermionField &vout_5d,
                                                     const FermionField &noise)
 {
-  LOG(Message) << "AA" << std::endl;
     if (noise.Grid()->Dimensions() == fGrid_->Dimensions() - 1)
     {
-      LOG(Message) << "BB" << std::endl;
         action_.ImportPhysicalFermionSource(noise, tmp5_);
     }
     else
     {
-      LOG(Message) << "CC" << std::endl;
         tmp5_ = noise;
     }
-    LOG(Message) << "DD" << std::endl;
     makeHighModeV(vout_5d, tmp5_);
-    LOG(Message) << "EE" << std::endl;
     action_.ExportPhysicalFermionSolution(vout_5d, vout_4d);
 }
-
 template <typename FImpl>
-void A2AVectorsSchurDiagTwo<FImpl>::makeHighModeW(FermionField &wout, 
+void A2AVectorsSchurDiagTwo<FImpl>::makeHighModeW(FermionField &wout,
                                                   const FermionField &noise)
 {
     wout = noise;
 }
-
 template <typename FImpl>
-void A2AVectorsSchurDiagTwo<FImpl>::makeHighModeW5D(FermionField &wout_4d, 
-                                                    FermionField &wout_5d, 
+void A2AVectorsSchurDiagTwo<FImpl>::makeHighModeW5D(FermionField &wout_4d,
+                                                    FermionField &wout_5d,
                                                     const FermionField &noise)
 {
     if (noise.Grid()->Dimensions() == fGrid_->Dimensions() - 1)
@@ -256,19 +265,17 @@ void A2AVectorsSchurDiagTwo<FImpl>::makeHighModeW5D(FermionField &wout_4d,
         action_.ExportPhysicalFermionSource(wout_5d, wout_4d);
     }
 }
-
 /******************************************************************************
  *               all-to-all vectors I/O template implementation               *
  ******************************************************************************/
 template <typename Field>
-void A2AVectorsIo::write(const std::string fileStem, std::vector<Field> &vec, 
+void A2AVectorsIo::write(const std::string fileStem, std::vector<Field> &vec,
                          const bool multiFile, const int trajectory)
 {
     Record       record;
     GridBase     *grid = vec[0].Grid();
     ScidacWriter binWriter(grid->IsBoss());
     std::string  filename = vecFilename(fileStem, trajectory, multiFile);
-
     if (multiFile)
     {
         std::string fullFilename;
@@ -276,7 +283,6 @@ void A2AVectorsIo::write(const std::string fileStem, std::vector<Field> &vec,
         for (unsigned int i = 0; i < vec.size(); ++i)
         {
             fullFilename = filename + "/elem" + std::to_string(i) + ".bin";
-
             LOG(Message) << "Writing vector " << i << std::endl;
             makeFileDir(fullFilename, grid);
             binWriter.open(fullFilename);
@@ -298,9 +304,8 @@ void A2AVectorsIo::write(const std::string fileStem, std::vector<Field> &vec,
         binWriter.close();
     }
 }
-
 template <typename Field>
-void A2AVectorsIo::read(std::vector<Field> &vec, const std::string fileStem, 
+void A2AVectorsIo::read(std::vector<Field> &vec, const std::string fileStem,
                         const bool multiFile, const int trajectory)
 {
     Record       record;
@@ -314,7 +319,6 @@ void A2AVectorsIo::read(std::vector<Field> &vec, const std::string fileStem,
         for (unsigned int i = 0; i < vec.size(); ++i)
         {
             fullFilename = filename + "/elem" + std::to_string(i) + ".bin";
-
             LOG(Message) << "Reading vector " << i << std::endl;
             binReader.open(fullFilename);
             binReader.readScidacFieldRecord(vec[i], record);
@@ -340,7 +344,39 @@ void A2AVectorsIo::read(std::vector<Field> &vec, const std::string fileStem,
         binReader.close();
     }
 }
+inline void A2AVectorsIo::openWriter(ScidacWriter &writer,
+                                     const std::string fileStem,
+                                     GridBase *grid,
+                                     const int trajectory)
+{
+    std::string filename = vecFilename(fileStem, trajectory, false);
 
+    makeFileDir(filename, grid);
+    writer.open(filename);
+}
+template <typename Field>
+void A2AVectorsIo::writeRecord(ScidacWriter &writer, Field &field,
+                               const unsigned int index)
+{
+    Record record;
+
+    LOG(Message) << "Writing vector " << index << std::endl;
+    record.index = index;
+    writer.writeScidacFieldRecord(field, record);
+}
+template <typename Field>
+void A2AVectorsIo::writeElement(const std::string fileStem, Field &field,
+                                const unsigned int index,
+                                const int trajectory)
+{
+    GridBase     *grid = field.Grid();
+    ScidacWriter writer(grid->IsBoss());
+    std::string  filename = elementFilename(fileStem, trajectory, index);
+
+    makeFileDir(filename, grid);
+    writer.open(filename);
+    writeRecord(writer, field, index);
+    writer.close();
+}
 END_HADRONS_NAMESPACE
-
 #endif // A2A_Vectors_hpp_
