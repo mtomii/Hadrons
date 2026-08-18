@@ -94,6 +94,15 @@ public:
     static void writeElement(const std::string fileStem, Field &field,
                              const unsigned int index,
                              const int trajectory = -1);
+    static void openReader(ScidacReader &reader, const std::string fileStem,
+                           const int trajectory = -1);
+    template <typename Field>
+    static void readRecord(ScidacReader &reader, Field &field,
+                           const unsigned int index);
+    template <typename Field>
+    static void readElement(const std::string fileStem, Field &field,
+                            const unsigned int index,
+                            const int trajectory = -1);
 private:
     static inline std::string vecFilename(const std::string stem, const int traj,
                                           const bool multiFile)
@@ -377,6 +386,39 @@ void A2AVectorsIo::writeElement(const std::string fileStem, Field &field,
     writer.open(filename);
     writeRecord(writer, field, index);
     writer.close();
+}
+inline void A2AVectorsIo::openReader(ScidacReader &reader,
+                                     const std::string fileStem,
+                                     const int trajectory)
+{
+    std::string filename = vecFilename(fileStem, trajectory, false);
+
+    reader.open(filename);
+}
+template <typename Field>
+void A2AVectorsIo::readRecord(ScidacReader &reader, Field &field,
+                              const unsigned int index)
+{
+    Record record;
+
+    LOG(Message) << "Reading vector " << index << std::endl;
+    reader.readScidacFieldRecord(field, record);
+    if (record.index != index)
+    {
+        HADRONS_ERROR(Io, "vector index mismatch");
+    }
+}
+template <typename Field>
+void A2AVectorsIo::readElement(const std::string fileStem, Field &field,
+                               const unsigned int index,
+                               const int trajectory)
+{
+    ScidacReader reader;
+    std::string  filename = elementFilename(fileStem, trajectory, index);
+
+    reader.open(filename);
+    readRecord(reader, field, index);
+    reader.close();
 }
 END_HADRONS_NAMESPACE
 #endif // A2A_Vectors_hpp_
