@@ -69,6 +69,18 @@ public:
     std::vector<ComplexField> &         getNoise(void);
     const std::vector<ComplexField> &   getNoise(void) const;
     FermionField &                      getFerm(const int i);
+    // Full-volume (undiluted) expansion of one hit's noise into the fermion
+    // field for one spin-color index: setPropagator(noise_[hit]) with no
+    // subclass dilution mask applied (the virtual setProp is never called),
+    // then the sc column via setFerm. For time-diluted noise this equals the
+    // superposition of that hit's nt time-diluted getFerm sources, which live
+    // on disjoint timeslices -- it is the dense/combined W representation:
+    // slot (hit, sc) restricted to timeslice t reproduces
+    // getFerm((hit*nt + t)*Nsc + sc) exactly. Returns the same shared
+    // scratch field as getFerm(i), so the caller must copy it out before the
+    // next call.
+    FermionField &                      getFullVolumeFerm(const int hit,
+                                                          const int sc);
     PropagatorField &                   getProp(const int i);
     virtual void                        resize(const int nNoise);
     virtual int                         size(void) const;
@@ -314,6 +326,15 @@ SpinColorDiagonalNoise<FImpl>::getFerm(const int i)
     divs = std::div(i, nsc);
     setProp(divs.quot);
     setFerm(divs.rem);
+    return getFerm();
+}
+
+template <typename FImpl>
+typename SpinColorDiagonalNoise<FImpl>::FermionField &
+SpinColorDiagonalNoise<FImpl>::getFullVolumeFerm(const int hit, const int sc)
+{
+    setPropagator(noise_[hit]);
+    setFerm(sc);
     return getFerm();
 }
 
