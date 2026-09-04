@@ -40,9 +40,15 @@
 BEGIN_HADRONS_NAMESPACE
 
 /******************************************************************************
- *  All-to-all meson field creation -- development module. Same structure as
- *  A2AMesonField, but folds the momentum index into A2ASpatialSum's GEMM
- *  (SumAllMomenta) instead of redoing Sum() once per momentum.
+ *  All-to-all meson field creation. Drives A2ASpatialSum with mode index
+ *  blocking exposed on the Hadrons side. Mode and momentum indices are packed
+ *  into buffers that are fed into the GEMM call, which batches over timeslice.
+ *  Gamma index is the only explicit loop present in the module.
+ *
+ *  SumRing does the GEMM, and then we execute a spatial ring all reduce to
+ *  complete the spatial + spin-colour reduction followed by a purely temporal
+ *  gather, constructing the full meson field through a ring rather than
+ *  GlobalSumVector.
  ******************************************************************************/
 BEGIN_MODULE_NAMESPACE(MContraction)
 
@@ -242,17 +248,31 @@ void TA2ANewMesonField<FImpl>::execute(void)
     // Scratch right vectors for GammaRight output (zero-momentum base pack).
     std::vector<FermionField> gammaRight(block, grid);
 
-    // Pre-allocated result buffer: one tensor covering all momenta at once,
-    // reused across all blocks. SumAllMomentaCacheBlocked fills only
-    // [0..Nii-1][0..Njj-1]; IO fill reads with explicit Nii/Njj bounds.
-    // Dimension order (nt, N_i, N_j, nmom) -- nmom last -- matches what
-    // SumAllMomentaCacheBlocked itself expects (see A2ASpatialSum.h; it
-    // stages through its own tile buffer and wants the opposite order from
-    // SumAllMomenta). RowMajor makes nmom the fastest dimension, so this is
-    // NOT j-fastest for the IO fill below -- that fill is a small,
-    // already-elementwise copy either way (see the block/cacheBlock IO
-    // discussion), so it isn't worth reordering just for that.
-    Eigen::Tensor<ComplexD, 4, Eigen::RowMajor> all_results(nt, block, block, nmom);
+    // Result buffers, one per distinct block shape. A block is either full or
+    // on the tail in each axis independently, so there are at most four shapes
+    // and a 2x2 pool indexed by (i on tail, j on tail) covers every case. Each
+    // slot is asked for the same dimensions every time it is selected, so the
+    // first visit allocates and every later one is a dimension assignment --
+    // Eigen's resize reallocates only when the total element count changes.
+    //
+    // Holding the shapes side by side rather than resizing one buffer is what
+    // keeps the kernel from re-zeroing a freshly mapped region on every grow:
+    // the tail shape and the full shape otherwise alternate once per jb
+    // iteration, and the full shape here is gigabytes. The cost is the sum of
+    // the shapes instead of the max, a few GB against the A2A vectors' tens of
+    // TB. It also makes `block` a free choice again -- N_i = nLow + Nsc*nHit
+    // and N_j = nLow + Nhigh*nHit move with the hit count, so no fixed block
+    // divides both, and a block that divides neither now costs two extra
+    // buffers rather than anything on the critical path.
+    //
+    // Dimension order (nt, Nii, nmom, Njj) -- nmom BEFORE N_j -- is the layout
+    // SumRing writes, matching its GEMM's [i][m][j] output. RowMajor then makes
+    // N_j the fastest dimension, so the IO fill below, which reads at fixed m
+    // and walks jj innermost, is contiguous on both sides. Passing the true
+    // per-block dimensions rather than one buffer padded to block is also what
+    // lets SumRing take its direct device->host path on every block including
+    // the tails, which leaves its "scatter" timer at zero.
+    Eigen::Tensor<ComplexD, 4, Eigen::RowMajor> resPool[2][2];
 
     // Every rank creates the output directory itself, rather than relying
     // on makeFileDir's boss-rank-only mkdir. File writes below are spread
@@ -300,17 +320,17 @@ void TA2ANewMesonField<FImpl>::execute(void)
     // One-time allocation for the full block size; subsequent pointer rewrites are cheap.
     startTimer("Allocate");
     spatial_sum_.AllocateRight(block, grid, nmom);
-    spatial_sum_.AllocateLeft(block, nmom);
+    spatial_sum_.AllocateLeft(block);
     stopTimer("Allocate");
 
     // Loop order (jb, g, ib):
     //   AllocateRight + PackRight + ApplyAllPhaseRight - once per (jb, g)
-    //   AllocateLeft  + PackLeftConj + SumAllMomenta  - once per (jb, g, ib)
+    //   AllocateLeft  + PackLeftConj + SumRing         - once per (jb, g, ib)
 
     double                fillTime     = 0.;
-    std::array<double, 7> ioTimings    = {};
-    std::array<double, 5> sumTimings   = {};
-    std::array<double, 5> sumBytes     = {};
+    //std::array<double, 7> ioTimings    = {};
+    std::array<double, 6> sumTimings   = {};
+    std::array<double, 6> sumBytes     = {};
 
     for (int jb = 0; jb < N_j; jb += block)
     {
@@ -339,8 +359,15 @@ void TA2ANewMesonField<FImpl>::execute(void)
             {
                 int Nii = std::min(N_i - ib, block);
 
+                // Pick the pool slot for this block's shape. Allocates on the
+                // first visit to each shape, dimension assignment after that,
+                // so a nonzero "Allocate" time past the first jb iteration
+                // means a shape is being reallocated and the pool is missing.
+                auto &all_results = resPool[Nii != block][Njj != block];
+
                 startTimer("Allocate");
-                spatial_sum_.AllocateLeft(Nii, nmom);
+                spatial_sum_.AllocateLeft(Nii);
+                all_results.resize(nt, Nii, nmom, Njj);
                 stopTimer("Allocate");
 
                 startTimer("Pack vectors");
@@ -348,8 +375,7 @@ void TA2ANewMesonField<FImpl>::execute(void)
                 stopTimer("Pack vectors");
 
                 startTimer("Sum");
-                // spatial_sum_.SumAllMomenta(all_results, &sumTimings, &sumBytes);
-                spatial_sum_.SumAllMomentaCacheBlocked(all_results, cacheBlock, &sumTimings, &sumBytes);
+                spatial_sum_.SumRing(all_results, cacheBlock, &sumTimings, &sumBytes);
                 stopTimer("Sum");
 
                 // Parallel IO: each rank writes its assigned momenta simultaneously.
@@ -377,7 +403,7 @@ void TA2ANewMesonField<FImpl>::execute(void)
                     thread_for_collapse(3, t, nt, {
                         for (int ii = 0; ii < Nii; ii++)
                         for (int jj = 0; jj < Njj; jj++)
-                            mf(0, 0, (int)t, ii, jj) = all_results((int)t, ii, jj, m);
+                            mf(0, 0, (int)t, ii, jj) = all_results((int)t, ii, m, jj);
                     });
                     dt += usecond();
                     fillTime += dt;
@@ -403,11 +429,15 @@ void TA2ANewMesonField<FImpl>::execute(void)
         } // g
     } // jb
 
-    // Throughput of the host-side, post-GEMM Sum() stages -- bytesMoved[k]
-    // and sumTimings[k] accumulate the same way across all (jb,g,ib) calls
-    // and all cacheBlock tiles, so their ratio is the average effective
+    // Throughput of the post-GEMM SumRing stages -- bytesMoved[k] and
+    // sumTimings[k] accumulate the same way across all (jb,g,ib) calls and
+    // all cacheBlock tiles, so their ratio is the average effective
     // bandwidth of that stage over the whole run, comparable across
     // different cacheBlock choices.
+    //
+    // The two ring stages report bytes on the wire rather than payload, so
+    // their rates are the ones comparable with a link rate; the local stages
+    // report the bytes they actually touch. See the SumRing header comment.
     auto gbps = [](double bytes, double us)
     {
         return (us > 0.) ? bytes / us * 1.e6 / 1024. / 1024. / 1024. : 0.;
@@ -416,12 +446,14 @@ void TA2ANewMesonField<FImpl>::execute(void)
     LOG(Message) << "  GEMM            = " << sumTimings[0] << std::endl;
     LOG(Message) << "  device->host    = " << sumTimings[1]
                  << " (" << gbps(sumBytes[1], sumTimings[1]) << " GB/s)" << std::endl;
-    LOG(Message) << "  transpose-1     = " << sumTimings[2]
+    LOG(Message) << "  gather to slab  = " << sumTimings[2]
                  << " (" << gbps(sumBytes[2], sumTimings[2]) << " GB/s)" << std::endl;
-    LOG(Message) << "  GlobalSumVector = " << sumTimings[3]
-                 << " (" << gbps(sumBytes[3], sumTimings[3]) << " GB/s)" << std::endl;
-    LOG(Message) << "  transpose-2     = " << sumTimings[4]
+    LOG(Message) << "  spatial reduce  = " << sumTimings[3]
+                 << " (" << gbps(sumBytes[3], sumTimings[3]) << " GB/s wire)" << std::endl;
+    LOG(Message) << "  scatter         = " << sumTimings[4]
                  << " (" << gbps(sumBytes[4], sumTimings[4]) << " GB/s)" << std::endl;
+    LOG(Message) << "  temporal gather = " << sumTimings[5]
+                 << " (" << gbps(sumBytes[5], sumTimings[5]) << " GB/s wire)" << std::endl;
     LOG(Message) << "IO detail (us), rank " << myRank << ":" << std::endl;
     LOG(Message) << "  fill            = " << fillTime      << std::endl;
     /*
