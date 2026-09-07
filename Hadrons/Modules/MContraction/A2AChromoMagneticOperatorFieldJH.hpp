@@ -129,7 +129,13 @@ void TA2AChromoMagneticOperatorFieldJH<GImpl,FImpl>::execute(void)
   int N_j        = right.size();
   int block = par().block;
   int cacheBlock = par().cacheBlock;
-  Vector<HADRONS_A2AM_IO_TYPE> mBuf; mBuf.resize(nt*N_i*N_j);
+
+  const std::size_t mBufSize =
+    static_cast<std::size_t>(nt)
+    * static_cast<std::size_t>(N_i)
+    * static_cast<std::size_t>(N_j);
+
+  Vector<HADRONS_A2AM_IO_TYPE> mBuf; mBuf.resize(mBufSize);
 
   LOG(Message) << "Left: '"        << par().left  << "' Right: '"
                << par().right      << "'"          << std::endl;
@@ -138,7 +144,7 @@ void TA2AChromoMagneticOperatorFieldJH<GImpl,FImpl>::execute(void)
   for (auto &p: parities_)
     LOG(Message) << "  " << p << std::endl;
   LOG(Message) << "CMO field size: " << nt << "*" << N_i << "*" << N_j
-               << " (filesize " << sizeString(nt*N_i*N_j*sizeof(HADRONS_A2AM_IO_TYPE)) << std::endl;
+               << " (filesize " << sizeString(mBufSize*sizeof(HADRONS_A2AM_IO_TYPE)) << std::endl;
 
   std::vector<FermionField> loopRight(block, grid);
 
