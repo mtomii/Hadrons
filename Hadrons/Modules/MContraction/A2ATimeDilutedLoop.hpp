@@ -2,7 +2,7 @@
 
 Grid physics library, www.github.com/paboyle/Grid
 
-Source file: Hadrons/Modules/MContraction/A2ALoopNew.hpp
+Source file: Hadrons/Modules/MContraction/A2ATimeDilutedLoop.hpp
 
 Copyright (C) 2015-2026
 
@@ -25,8 +25,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 See the full license in the file "LICENSE" in the top level distribution directory
 *************************************************************************************/
 /*  END LEGAL */
-#ifndef Hadrons_MContraction_A2ALoopNew_hpp_
-#define Hadrons_MContraction_A2ALoopNew_hpp_
+#ifndef Hadrons_MContraction_A2ATimeDilutedLoop_hpp_
+#define Hadrons_MContraction_A2ATimeDilutedLoop_hpp_
 
 #include <Hadrons/Global.hpp>
 #include <Hadrons/Module.hpp>
@@ -69,7 +69,7 @@ BEGIN_HADRONS_NAMESPACE
  ******************************************************************************/
 BEGIN_MODULE_NAMESPACE(MContraction)
 
-class A2ALoopNewPar: Serializable
+class A2ATimeDilutedLoopPar: Serializable
 {
 public:
     // nLow:  size of the low-mode block common to both arrays; 0 for flavors
@@ -78,7 +78,7 @@ public:
     //        field views are open on the device at once. Bounds device memory
     //        independently of the mode count; the high-mode phase in the dense
     //        case is only Nsc modes and ignores it.
-    GRID_SERIALIZABLE_CLASS_MEMBERS(A2ALoopNewPar,
+    GRID_SERIALIZABLE_CLASS_MEMBERS(A2ATimeDilutedLoopPar,
                                     std::string,  left,
                                     std::string,  right,
                                     unsigned int, nLow,
@@ -86,15 +86,15 @@ public:
 };
 
 template <typename FImpl>
-class TA2ALoopNew: public Module<A2ALoopNewPar>
+class TA2ATimeDilutedLoop: public Module<A2ATimeDilutedLoopPar>
 {
 public:
     FERM_TYPE_ALIASES(FImpl,);
 public:
     // constructor
-    TA2ALoopNew(const std::string name);
+    TA2ATimeDilutedLoop(const std::string name);
     // destructor
-    virtual ~TA2ALoopNew(void) {};
+    virtual ~TA2ATimeDilutedLoop(void) {};
     // dependency relation
     virtual std::vector<std::string> getInput(void);
     virtual std::vector<std::string> getOutput(void);
@@ -108,20 +108,20 @@ private:
     int  nt_, nsc_, nHit_;
 };
 
-MODULE_REGISTER_TMP(A2ALoopNew, TA2ALoopNew<FIMPL>, MContraction);
+MODULE_REGISTER_TMP(A2ATimeDilutedLoop, TA2ATimeDilutedLoop<FIMPL>, MContraction);
 
 /******************************************************************************
- *                       TA2ALoopNew implementation                           *
+ *                     TA2ATimeDilutedLoop implementation                      *
  ******************************************************************************/
 // constructor /////////////////////////////////////////////////////////////////
 template <typename FImpl>
-TA2ALoopNew<FImpl>::TA2ALoopNew(const std::string name)
-: Module<A2ALoopNewPar>(name)
+TA2ATimeDilutedLoop<FImpl>::TA2ATimeDilutedLoop(const std::string name)
+: Module<A2ATimeDilutedLoopPar>(name)
 {}
 
 // dependencies/products ///////////////////////////////////////////////////////
 template <typename FImpl>
-std::vector<std::string> TA2ALoopNew<FImpl>::getInput(void)
+std::vector<std::string> TA2ATimeDilutedLoop<FImpl>::getInput(void)
 {
     std::vector<std::string> in = {par().left, par().right};
 
@@ -129,7 +129,7 @@ std::vector<std::string> TA2ALoopNew<FImpl>::getInput(void)
 }
 
 template <typename FImpl>
-std::vector<std::string> TA2ALoopNew<FImpl>::getOutput(void)
+std::vector<std::string> TA2ATimeDilutedLoop<FImpl>::getOutput(void)
 {
     std::vector<std::string> out = {getName()};
 
@@ -138,7 +138,7 @@ std::vector<std::string> TA2ALoopNew<FImpl>::getOutput(void)
 
 // setup ///////////////////////////////////////////////////////////////////////
 template <typename FImpl>
-void TA2ALoopNew<FImpl>::setup(void)
+void TA2ATimeDilutedLoop<FImpl>::setup(void)
 {
     auto &left  = envGet(std::vector<FermionField>, par().left);
     auto &right = envGet(std::vector<FermionField>, par().right);
@@ -208,7 +208,7 @@ void TA2ALoopNew<FImpl>::setup(void)
 
 // execution ///////////////////////////////////////////////////////////////////
 template <typename FImpl>
-void TA2ALoopNew<FImpl>::execute(void)
+void TA2ATimeDilutedLoop<FImpl>::execute(void)
 {
     // Qualified: MODULE_REGISTER declares a class A2AExtendedMesonField in
     // this same namespace, which would otherwise shadow the Grid template.
@@ -286,4 +286,4 @@ END_MODULE_NAMESPACE
 
 END_HADRONS_NAMESPACE
 
-#endif // Hadrons_MContraction_A2ALoopNew_hpp_
+#endif // Hadrons_MContraction_A2ATimeDilutedLoop_hpp_
