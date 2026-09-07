@@ -183,6 +183,11 @@ void TA2ANewMesonField<FImpl>::execute(void)
     int block  = par().block;
     int cacheBlock = par().cacheBlock;
 
+    const std::size_t mBufSize =
+      static_cast<std::size_t>(nt)
+      * static_cast<std::size_t>(N_i)
+      * static_cast<std::size_t>(N_j);
+
     LOG(Message) << "Computing all-to-all meson fields" << std::endl;
     LOG(Message) << "Left: '" << par().left << "' Right: '" << par().right << "'" << std::endl;
     LOG(Message) << "Momenta:" << std::endl;
@@ -192,7 +197,7 @@ void TA2ANewMesonField<FImpl>::execute(void)
     for (auto &g: gamma_)
         LOG(Message) << "  " << g << std::endl;
     LOG(Message) << "Meson field size: " << nt << "*" << N_i << "*" << N_j
-                 << " (filesize " << sizeString(nt*N_i*N_j*sizeof(HADRONS_A2AM_IO_TYPE))
+                 << " (filesize " << sizeString(mBufSize*sizeof(HADRONS_A2AM_IO_TYPE))
                  << "/momentum/bilinear)" << std::endl;
 
     auto &ph = envGet(std::vector<ComplexField>, momphName_);
