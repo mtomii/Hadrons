@@ -33,6 +33,7 @@
 #include <Hadrons/Solver.hpp>
 #include <Hadrons/A2AVectors.hpp>
 #include <Hadrons/DilutedNoise.hpp>
+#include <sstream>
 
 BEGIN_HADRONS_NAMESPACE
 /******************************************************************************
@@ -47,6 +48,7 @@ public:
                                   std::string, action,
                                   std::string, solver,
                                   std::string, output,
+				  std::string, initBin,
                                   bool,        multiFile);
 };
 template <typename FImpl, int binSize>
@@ -124,6 +126,46 @@ void TA2AHighModeVBinned<FImpl, binSize>::execute(void)
 {
     auto &noise = envGet(SpinColorDiagonalNoise<FImpl>, par().noise);
     int  Ls     = env().getObjectLs(par().action);
+
+    unsigned int initBin = 0;
+
+    if (!par().initBin.empty())
+    {
+      int value = 0;
+      std::istringstream is(par().initBin);
+
+      if (!(is >> value) || value < 0)
+      {
+        HADRONS_ERROR(Argument,
+                      "initBin must be a non-negative integer");
+      }
+
+      is >> std::ws;
+      if (!is.eof())
+      {
+        HADRONS_ERROR(Argument,
+                      "Invalid initBin: " + par().initBin);
+      }
+
+      initBin = static_cast<unsigned int>(value);
+    }
+
+    if (initBin >= noise.fermSize()/binSize)
+      {
+	HADRONS_ERROR(Argument,
+		      "initBin is outside the range of output bins");
+      }
+
+    if (initBin > 0 && !par().multiFile)
+    {
+      HADRONS_ERROR(Argument,
+		    "initBin > 0 requires multiFile=true");
+    }
+
+    LOG(Message) << "Starting from bin " << initBin
+	<< ", noise vector " << binSize*initBin
+	<< std::endl;
+
     envGetTmp(FermionField, v);
     envGetTmp(Lattice<SiteSpinorSet>, vBin);
     envGetTmp(A2A, a2a);
@@ -137,7 +179,7 @@ void TA2AHighModeVBinned<FImpl, binSize>::execute(void)
                                  vm().getTrajectory());
     }
     // High modes
-    for (unsigned int ih = 0; ih < noise.fermSize(); ih++)
+    for (unsigned int ih = binSize*initBin; ih < noise.fermSize(); ih++)
     {
         startTimer("V high mode");
         LOG(Message) << "V vector i = " << ih
