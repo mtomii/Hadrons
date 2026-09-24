@@ -49,7 +49,6 @@ public:
 				    int, ntmat2,
 				    int, indent1,
 				    int, indent2,
-                                    std::string, field,
 				    std::string, sctypes,
                                     std::string, output,
                                     std::string, mat1,
@@ -107,7 +106,7 @@ TA2AFourQuarkContractionMT<FImpl>::TA2AFourQuarkContractionMT(const std::string 
 template <typename FImpl>
 std::vector<std::string> TA2AFourQuarkContractionMT<FImpl>::getInput(void)
 {
-  std::vector<std::string> in = {par().mat1, par().mat2, par().field};
+  std::vector<std::string> in = {par().mat1, par().mat2};
 
   return in;
 }
@@ -198,8 +197,7 @@ void TA2AFourQuarkContractionMT<FImpl>::execute(void)
   typedef iSinglet<vector_type> Scalar_v;
   typedef iSinglet<scalar_type> Scalar_s;
 
-  auto &field = envGet(std::vector<FermionField>, par().field);
-  GridBase *grid = field[0].Grid();
+  GridBase *grid = envGetGrid(PropagatorField);
 
   auto &mat1    = envGet(std::vector<SpinColourMatrix_v>, par().mat1);
   auto &mat2    = envGet(std::vector<SpinColourMatrix_v>, par().mat2);
@@ -231,6 +229,7 @@ void TA2AFourQuarkContractionMT<FImpl>::execute(void)
     int it1 = it + indent1;
     int it2 = it + indent2;
     int itg = ig + gamma1_.size() * isct;
+    const int sctype = types_[isct];
     std::vector<Gamma::Algebra> gvec1 = gamma1_[ig];
     std::vector<Gamma::Algebra> gvec2 = gamma2_[ig];
     for(int ix3d=0;ix3d<vol3d;ix3d++){
@@ -240,16 +239,16 @@ void TA2AFourQuarkContractionMT<FImpl>::execute(void)
 	SpinColourMatrix_v WM1 = mat1[ix1] * Gamma(gvec1[igg]);
 	SpinColourMatrix_v WM2 = mat2[ix2] * Gamma(gvec2[igg]);
 	Scalar_v val = Zero();
-	if ( isct == 0 ) {
+	if ( sctype == 0 ) {
 	  val = trace(WM1) * trace(WM2);
-	} else if ( isct == 1 ) {
+	} else if ( sctype == 1 ) {
 	  for(int s1=0;s1<Ns;++s1)
 	  for(int s2=0;s2<Ns;++s2)
 	  for(int c1=0;c1<Nc;++c1)
 	  for(int c2=0;c2<Nc;++c2){
 	    val()()() += WM1()(s1,s2)(c1,c2) * WM2()(s2,s1)(c2,c1);
 	  }
-	} else if ( isct == 2 ) {
+	} else if ( sctype == 2 ) {
 	  ColourMatrix_v CM1 = Zero();
 	  ColourMatrix_v CM2 = Zero();
 	  for(int s1=0;s1<Ns;++s1)
@@ -262,7 +261,7 @@ void TA2AFourQuarkContractionMT<FImpl>::execute(void)
 	  for(int c2=0;c2<Nc;++c2){
 	    val()()() += CM1()()(c1,c2) * CM2()()(c2,c1);
 	  }
-	} else if ( isct == 3 ) {
+	} else if ( sctype == 3 ) {
 	  SpinMatrix_v SM1 = Zero();
 	  SpinMatrix_v SM2 = Zero();
 	  for(int s1=0;s1<Ns;++s1)
@@ -306,6 +305,7 @@ void TA2AFourQuarkContractionMT<FImpl>::execute(void)
   LOG(Message) << "Saving correlator to '" << filename << "'" << std::endl;
   if( grid->_lstart[0] + grid->_lstart[1] + grid->_lstart[2] + grid->_lstart[3] == 0 ) {
 
+    makeFileDir(filename);
     ResultWriter writer(filename);
 
     std::vector<std::string> gam1 = strToVec<std::string>(par().gammas1);
@@ -315,7 +315,7 @@ void TA2AFourQuarkContractionMT<FImpl>::execute(void)
       int ig = itg % gamma1_.size();
       int isct = int( itg / gamma1_.size() );
       out.correlator = corr[itg];
-      std::string dataSet = getName() + "_" + gam1[ig] + "_" + gam2[ig] + "_sort" + std::to_string(isct);
+      std::string dataSet = getName() + "_" + gam1[ig] + "_" + gam2[ig] + "_sort" + std::to_string(types_[isct]);
       write(writer, dataSet, out);
     }
   }

@@ -46,7 +46,6 @@ class A2ATwoQuarkContractionMTPar: Serializable
 public:
     GRID_SERIALIZABLE_CLASS_MEMBERS(A2ATwoQuarkContractionMTPar,
 				    int, ntmat,
-                                    std::string, field,
                                     std::string, output,
 				    std::string, mat,
 				    std::string, gammas);
@@ -99,7 +98,7 @@ TA2ATwoQuarkContractionMT<FImpl>::TA2ATwoQuarkContractionMT(const std::string na
 template <typename FImpl>
 std::vector<std::string> TA2ATwoQuarkContractionMT<FImpl>::getInput(void)
 {
-  std::vector<std::string> in = {par().mat, par().field};
+  std::vector<std::string> in = {par().mat};
 
   return in;
 }
@@ -164,8 +163,7 @@ void TA2ATwoQuarkContractionMT<FImpl>::execute(void)
   typedef iSinglet<vector_type> Scalar_v;
   typedef iSinglet<scalar_type> Scalar_s;
 
-  auto &field = envGet(std::vector<FermionField>, par().field);
-  GridBase *grid = field[0].Grid();
+  GridBase *grid = envGetGrid(PropagatorField);
 
   auto &mat  = envGet(std::vector<SpinColourMatrix_v>, par().mat);
   auto &nt   = par().ntmat;
@@ -220,6 +218,7 @@ void TA2ATwoQuarkContractionMT<FImpl>::execute(void)
   LOG(Message) << "Saving correlator to '" << filename << "'" << std::endl;
   if( grid->_lstart[0] + grid->_lstart[1] + grid->_lstart[2] + grid->_lstart[3] == 0 ) {
 
+    makeFileDir(filename);
     ResultWriter writer(filename);
 
     std::vector<std::string> gam = strToVec<std::string>(par().gammas);
