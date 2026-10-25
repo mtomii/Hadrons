@@ -12,8 +12,11 @@ EXTRA_PROGRAMS = \
   HadronsFermionEP64To32     \
   K2pipiContractor           \
   BubbleContractor           \
+  BubbleContractorDWC        \
   A2AMesonFieldSelectHits    \
+  A2AMesonFieldProduct       \
   FlexibleContractor         \
+  FlexibleContractorDWC      \
   HadronsFermionEP64To32
 
 CLEANFILES = $(EXTRA_PROGRAMS)
@@ -37,14 +40,23 @@ HadronsContractor_LDADD   = -lHadrons -lGrid
 FlexibleContractor_SOURCES = FlexibleContractor.cpp
 FlexibleContractor_LDADD   = -lHadrons -lGrid
 
+FlexibleContractorDWC_SOURCES = FlexibleContractorDWC.cpp
+FlexibleContractorDWC_LDADD   = -lHadrons -lGrid
+
 K2pipiContractor_SOURCES = K2pipiContractor.cpp
 K2pipiContractor_LDADD   = -lHadrons -lGrid
 
 BubbleContractor_SOURCES = BubbleContractor.cpp
 BubbleContractor_LDADD   = -lHadrons -lGrid
 
+BubbleContractorDWC_SOURCES = BubbleContractorDWC.cpp
+BubbleContractorDWC_LDADD   = -lHadrons -lGrid
+
 A2AMesonFieldSelectHits_SOURCES = A2AMesonFieldSelectHits.cpp
 A2AMesonFieldSelectHits_LDADD   = -lHadrons -lGrid
+
+A2AMesonFieldProduct_SOURCES = A2AMesonFieldProduct.cpp
+A2AMesonFieldProduct_LDADD   = -lHadrons -lGrid
 
 HadronsContractorBenchmark_SOURCES = ContractorBenchmark.cpp
 HadronsContractorBenchmark_LDADD   = -lHadrons -lGrid
