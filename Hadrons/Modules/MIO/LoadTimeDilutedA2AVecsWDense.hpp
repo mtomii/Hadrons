@@ -142,6 +142,13 @@ void TLoadTimeDilutedA2AVecsWDense<FImpl, lowBinSize>::setup(void)
     unsigned int total = par().nLow + noise.size()*nsc;
     auto         grid  = envGetGrid(FermionField);
 
+    const A2AVectorFactory<FermionField> fields{
+      grid, total
+    };
+
+    envCreate(std::vector<FermionField>, getName(), 1, fields);
+
+    /*
     envCreate(std::vector<FermionField>, getName(), 1, 0, grid);
     auto &out = envGet(std::vector<FermionField>, getName());
     out.reserve(total);
@@ -149,6 +156,7 @@ void TLoadTimeDilutedA2AVecsWDense<FImpl, lowBinSize>::setup(void)
     {
         out.emplace_back(grid, CpuWrite);
     }
+    */
 }
 
 // execution ///////////////////////////////////////////////////////////////////

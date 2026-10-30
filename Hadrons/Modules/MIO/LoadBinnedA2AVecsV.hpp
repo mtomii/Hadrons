@@ -119,10 +119,21 @@ void TLoadBinnedA2AVecsV<FImpl, lowBinSize, highBinSize>::setup(void)
     assert(!par().highFileStems.empty());
     assert(par().highSize > 0);
     assert(par().nHit > 0);
+
+    const std::size_t nVectors = par().lowSize
+      + par().highSize*par().highFileStems.size();
+
+    const A2AVectorFactory<FermionField> fields{
+      envGetGrid(FermionField), nVectors
+    };
+
+    envCreate(std::vector<FermionField>, getName(), 1, fields);
+    /*
     envCreate(std::vector<FermionField>, getName(), 1,
               par().lowSize
               + par().highSize*par().highFileStems.size(),
               envGetGrid(FermionField));
+    */
 }
 // execution ///////////////////////////////////////////////////////////////////
 template <typename FImpl, int lowBinSize, int highBinSize>

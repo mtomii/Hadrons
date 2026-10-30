@@ -420,5 +420,25 @@ void A2AVectorsIo::readElement(const std::string fileStem, Field &field,
     readRecord(reader, field, index);
     reader.close();
 }
+
+template <typename Field>
+struct A2AVectorFactory
+{
+    GridBase *grid;
+    std::size_t count;
+
+    operator std::vector<Field>() const
+    {
+        std::vector<Field> result;
+        result.reserve(count);
+
+        for (std::size_t i = 0; i < count; ++i)
+        {
+            result.emplace_back(grid, CpuWrite);
+        }
+
+        return result;
+    }
+};
 END_HADRONS_NAMESPACE
 #endif // A2A_Vectors_hpp_
