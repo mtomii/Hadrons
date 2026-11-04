@@ -174,6 +174,30 @@ void TA2AFourQuarkContractionProp<FImpl>::setup(void)
         {
             vec = {Gamma::Algebra::GammaXGamma5, Gamma::Algebra::GammaYGamma5,
                    Gamma::Algebra::GammaZGamma5, Gamma::Algebra::GammaTGamma5};
+	}
+	else if (nameg1_[ig] == "SigmaMUNU")
+	{
+	  // Six independent pairs: XY, XZ, XT, YZ, YT, ZT (mu < nu).
+	  vec = {
+	    Gamma::Algebra::SigmaXY,
+	    Gamma::Algebra::SigmaXZ,
+	    Gamma::Algebra::SigmaXT,
+	    Gamma::Algebra::SigmaYZ,
+	    Gamma::Algebra::SigmaYT,
+	    Gamma::Algebra::SigmaZT
+	  };
+	}
+	else if (nameg1_[ig] == "SigmaMUNUGamma5")
+	{
+	  // sigma_{mu,nu} * gamma5, in the same six-pair order.
+	  vec = {
+	    Gamma::Algebra::MinusSigmaZT,
+	    Gamma::Algebra::SigmaYT,
+	    Gamma::Algebra::MinusSigmaYZ,
+	    Gamma::Algebra::MinusSigmaXT,
+	    Gamma::Algebra::SigmaXZ,
+	    Gamma::Algebra::MinusSigmaXY
+	  };
         }
         else
         {
@@ -190,6 +214,30 @@ void TA2AFourQuarkContractionProp<FImpl>::setup(void)
         {
             vec = {Gamma::Algebra::GammaXGamma5, Gamma::Algebra::GammaYGamma5,
                    Gamma::Algebra::GammaZGamma5, Gamma::Algebra::GammaTGamma5};
+	}
+	else if (nameg2_[ig] == "SigmaMUNU")
+	{
+	  // Six independent pairs: XY, XZ, XT, YZ, YT, ZT (mu < nu).
+	  vec = {
+	    Gamma::Algebra::SigmaXY,
+	    Gamma::Algebra::SigmaXZ,
+	    Gamma::Algebra::SigmaXT,
+	    Gamma::Algebra::SigmaYZ,
+	    Gamma::Algebra::SigmaYT,
+	    Gamma::Algebra::SigmaZT
+	  };
+	}
+	else if (nameg2_[ig] == "SigmaMUNUGamma5")
+	{
+	  // sigma_{mu,nu} * gamma5, in the same six-pair order.
+	  vec = {
+	    Gamma::Algebra::MinusSigmaZT,
+	    Gamma::Algebra::SigmaYT,
+	    Gamma::Algebra::MinusSigmaYZ,
+	    Gamma::Algebra::MinusSigmaXT,
+	    Gamma::Algebra::SigmaXZ,
+	    Gamma::Algebra::MinusSigmaXY
+	  };
         }
         else
         {
