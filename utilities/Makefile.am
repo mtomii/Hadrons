@@ -11,6 +11,7 @@ EXTRA_PROGRAMS = \
   HadronsXmlValidate         \
   HadronsFermionEP64To32     \
   K2pipiContractor           \
+  K2pipiContractorDWC        \
   BubbleContractor           \
   BubbleContractorDWC        \
   A2AMesonFieldSelectHits    \
@@ -45,6 +46,9 @@ FlexibleContractorDWC_LDADD   = -lHadrons -lGrid
 
 K2pipiContractor_SOURCES = K2pipiContractor.cpp
 K2pipiContractor_LDADD   = -lHadrons -lGrid
+
+K2pipiContractorDWC_SOURCES = K2pipiContractorDWC.cpp
+K2pipiContractorDWC_LDADD   = -lHadrons -lGrid
 
 BubbleContractor_SOURCES = BubbleContractor.cpp
 BubbleContractor_LDADD   = -lHadrons -lGrid
