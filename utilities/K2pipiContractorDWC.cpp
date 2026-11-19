@@ -384,7 +384,7 @@ MatrixDimensions loadMatrix(const std::string &filename, const std::string &grou
   memType.insertMember("im", readFloat ? HOFFSET(ComplexValueF,im)
                                      : HOFFSET(ComplexValue,im), nativeType);
   fileBytes = checkedMul(checkedMul(checkedMul(nt, std::size_t(d[1])), std::size_t(d[2])), diskType.getSize());
-  const hsize_t tile = 512; // Bounded conversion buffer; not a physics/cache parameter.
+  const hsize_t tile = std::max(d[1], d[2]);//512; // Bounded conversion buffer; not a physics/cache parameter.
   const auto nValues = checkedMul(std::min(tile,d[1]), std::min(tile,d[2]));
   std::vector<ComplexValueF> valuesF(readFloat ? nValues : 0);
   std::vector<ComplexValue> values(readFloat ? 0 : nValues);
