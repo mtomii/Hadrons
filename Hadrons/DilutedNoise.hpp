@@ -434,8 +434,8 @@ int TimeDilutedNoise<FImpl>::dilutionSize() const
 template <typename FImpl>
 void TimeDilutedNoise<FImpl>::setProp(const int i)
 {
-    auto eta   = this->getEta();
-    auto noise = this->getNoise();
+    auto &eta   = this->getEta();
+    const auto &noise = this->getNoise();
     auto nd    = this->getNd();
     auto nt    = this->getGrid()->GlobalDimensions()[Tp];
 
@@ -466,7 +466,7 @@ int FullVolumeNoise<FImpl>::dilutionSize() const
 template <typename FImpl>
 void FullVolumeNoise<FImpl>::setProp(const int i)
 {
-    auto noise = this->getNoise();
+    auto &noise = this->getNoise();
     this->setPropagator(noise[i]);
 }
 
@@ -498,9 +498,9 @@ int CheckerboardNoise<FImpl>::dilutionSize() const
 template <typename FImpl>
 void CheckerboardNoise<FImpl>::setProp(const int i)
 {
-    auto eta   = this->getEta();
+    auto &eta   = this->getEta();
     auto nd    = this->getNd();
-    auto noise = this->getNoise();
+    const auto &noise = this->getNoise();
     auto nsc   = this->getNsc();
     unsigned int j;
     eta = noise[i];
@@ -538,9 +538,9 @@ int SparseNoise<FImpl>::dilutionSize() const
 template <typename FImpl>
 void SparseNoise<FImpl>::setProp(const int i)
 {
-    auto eta   = this->getEta();
+    auto &eta   = this->getEta();
     auto nd    = this->getNd();
-    auto noise = this->getNoise();
+    const auto &noise = this->getNoise();
 
     std::div_t divs = std::div(i, pow(nSparse_, nd));
     eta = noise[divs.quot];
