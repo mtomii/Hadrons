@@ -427,8 +427,9 @@ double traceDWC(ComplexD &acc, const Matrix &a, const LastMatrix &b,
 }
 
 // Read F or D independently of HADRONS_A2AM_IO_TYPE. The memory compound is
-// explicitly the layout of ComplexValue, never the datatype read from the file.
+// explicitly the native buffer layout, never the datatype read from the file.
 struct ComplexValue { double re, im; };
+struct ComplexValueF { float re, im; };
 MatrixDimensions loadMatrix(const std::string &filename, const std::string &group,
                             unsigned int nt, EigenDiskVector<ComplexD> &v,
                             double &tRead, std::size_t &fileBytes)
@@ -455,12 +456,25 @@ MatrixDimensions loadMatrix(const std::string &filename, const std::string &grou
   require(rt.getClass() == H5T_FLOAT && it.getClass() == H5T_FLOAT &&
           rt.getSize() == it.getSize() && (rt.getSize() == 4 || rt.getSize() == 8),
           "expected float/double re and im in " + filename);
-  H5NS::CompType memType(sizeof(ComplexValue));
-  memType.insertMember("re", HOFFSET(ComplexValue,re), H5NS::PredType::NATIVE_DOUBLE);
-  memType.insertMember("im", HOFFSET(ComplexValue,im), H5NS::PredType::NATIVE_DOUBLE);
+  const bool readFloat =
+    (H5Tequal(rt.getId(), H5T_IEEE_F32LE) > 0 ||
+     H5Tequal(rt.getId(), H5T_IEEE_F32BE) > 0) &&
+    (H5Tequal(it.getId(), H5T_IEEE_F32LE) > 0 ||
+     H5Tequal(it.getId(), H5T_IEEE_F32BE) > 0);
+  const auto &nativeType = readFloat ? H5NS::PredType::NATIVE_FLOAT
+                                     : H5NS::PredType::NATIVE_DOUBLE;
+  H5NS::CompType memType(readFloat ? sizeof(ComplexValueF) : sizeof(ComplexValue));
+  memType.insertMember("re", readFloat ? HOFFSET(ComplexValueF,re)
+                                     : HOFFSET(ComplexValue,re), nativeType);
+  memType.insertMember("im", readFloat ? HOFFSET(ComplexValueF,im)
+                                     : HOFFSET(ComplexValue,im), nativeType);
   fileBytes = checkedMul(checkedMul(checkedMul(nt, std::size_t(d[1])), std::size_t(d[2])), diskType.getSize());
   const hsize_t tile = 512; // Bounded conversion buffer; not a physics/cache parameter.
-  std::vector<ComplexValue> values(checkedMul(std::min(tile,d[1]), std::min(tile,d[2])));
+  const auto nValues = checkedMul(std::min(tile,d[1]), std::min(tile,d[2]));
+  std::vector<ComplexValueF> valuesF(readFloat ? nValues : 0);
+  std::vector<ComplexValue> values(readFloat ? 0 : nValues);
+  void *readBuffer = readFloat ? static_cast<void *>(valuesF.data())
+                               : static_cast<void *>(values.data());
   Matrix buf;
   buf.resize(Eigen::Index(d[1]), Eigen::Index(d[2]));
   std::cout << "  disk Complex" << (rt.getSize()==4 ? "F" : "D")
@@ -479,11 +493,14 @@ MatrixDimensions loadMatrix(const std::string &filename, const std::string &grou
         const hsize_t count[3] = {1,nr,nc}, offset[3] = {t,i,j};
         H5NS::DataSpace mem(3,count);
         space.selectHyperslab(H5S_SELECT_SET,count,offset);
-        data.read(values.data(),memType,mem,space);
+        data.read(readBuffer,memType,mem,space);
         for (hsize_t r = 0; r < nr; ++r)
         for (hsize_t c = 0; c < nc; ++c)
         {
-          const auto z = values[std::size_t(r*nc+c)];
+          const auto k = std::size_t(r*nc+c);
+          const ComplexValue z = readFloat
+            ? ComplexValue{double(valuesF[k].re), double(valuesF[k].im)}
+            : values[k];
           if (!std::isfinite(z.re) || !std::isfinite(z.im))
 	  {
             HADRONS_ERROR(Argument, "non-finite input in " + filename);
