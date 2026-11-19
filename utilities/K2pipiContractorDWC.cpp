@@ -801,6 +801,8 @@ int main(int argc, char* argv[])
                 std::cout << "Saving correlators to '" << filename << "'" << std::endl;
                 makeFileDir(filename);
                 ResultWriter writer(filename);
+		write(writer, "min_t", p.min_t);
+		write(writer, "max_t", p.max_t);
 
                 std::size_t translationIndex = 0;
                 for (const auto dt: translations)
