@@ -83,7 +83,7 @@ using Matrix = A2AMatrix<ComplexD>;
 static_assert(Matrix::IsRowMajor, "Hadrons A2AMatrix is expected to be row-major");
 static constexpr hsize_t nsc = Ns*Nc;
 //static constexpr hsize_t ioTile = 512;  // <= 4 MiB conversion buffer
-const hsize_t ioTile = std::max(dim[1], dim[2]);
+//const hsize_t ioTile = std::max(dim[1], dim[2]);
 //static constexpr hsize_t chunkSize = 256;
 static const char *metadataName = "_A2AProductMetadata";
 static const char *sourcesName = "_A2AProductInputs";
@@ -253,6 +253,7 @@ void load(ResidentMatrix &m)
     auto data = m.file->openDataSet(path);
     auto space = data.getSpace();
     const auto type = memoryType();
+    const hsize_t ioTile = std::max(m.rows, m.cols);
     std::vector<ComplexValue> buf(asSize(checkedMul(std::min(ioTile,m.rows), std::min(ioTile,m.cols))));
     m.value.resize(asSize(m.nt));
     for (hsize_t t = 0; t < m.nt; ++t)
@@ -410,6 +411,7 @@ void product(const ProductPlan &plan, const std::vector<ResidentMatrix> &matrice
     const auto &left = matrices[plan.left]; const auto &right = matrices[plan.right];
     const hsize_t nt = left.nt, low = par.initDense, active = plan.active;
     const hsize_t dim[3] = {nt,left.rows,right.cols};
+    const hsize_t ioTile = std::max(dim[1], dim[2]);
     const std::string temporary = par.output + ".partial." + std::to_string(::getpid());
     bool ownTemporary = false;
     std::cout << "PRODUCT " << par.mfL << "[t+" << par.deltaL << "] * " << par.mfR
