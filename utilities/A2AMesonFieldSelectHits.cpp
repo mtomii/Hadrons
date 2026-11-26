@@ -93,9 +93,6 @@ struct ComplexValue
     double re, im;
 };
 
-// These bound our data buffer, not GEMM blocks or physics parameters.
-static constexpr hsize_t ioTile     = 512; // <= 4 MiB of ComplexValue
-static constexpr hsize_t chunkSize  = 256; // output chunk = (1, <=256, <=256)
 static const std::string historyName = "_A2AHitSelectionHistory";
 
 void require(bool ok, const std::string &message)
@@ -341,6 +338,7 @@ void selectHits(const SelectionPar &par, long long traj)
             const std::size_t realBytes = checkComplexType(diskType);
             const auto left  = makePlan(par.left,  inputDim[1], "left");
             const auto right = makePlan(par.right, inputDim[2], "right");
+            const hsize_t ioTile = std::max(left.size, right.size);
             const hsize_t outputDim[3] = {inputDim[0], left.size, right.size};
             const hsize_t outputBytes = checkedMul(checkedMul(checkedMul(outputDim[0], outputDim[1]),
                                                              outputDim[2]), diskType.getSize());
@@ -361,7 +359,7 @@ void selectHits(const SelectionPar &par, long long traj)
                 copyMetadata(inRoot, outRoot, "", matrixPath);
                 auto outGroup = output.openGroup(groupName);
                 H5NS::DataSpace outputSpace(3, outputDim);
-                const hsize_t chunk[3] = {1, std::min(chunkSize, left.size), std::min(chunkSize, right.size)};
+                const hsize_t chunk[3] = {1, left.size, right.size};
                 H5NS::DSetCreatPropList plist;
                 plist.setChunk(3, chunk);
                 plist.setFletcher32();
@@ -373,8 +371,9 @@ void selectHits(const SelectionPar &par, long long traj)
                 memoryType.insertMember("im", HOFFSET(ComplexValue, im), H5NS::PredType::NATIVE_DOUBLE);
                 const double largest = realBytes == 4 ? static_cast<double>(std::numeric_limits<float>::max())
                                                       : std::numeric_limits<double>::max();
-                std::vector<ComplexValue> buf(asSize(checkedMul(std::min(ioTile, left.size),
-                                                                std::min(ioTile, right.size))));
+                std::vector<ComplexValue> buf(asSize(checkedMul(left.size, right.size)));
+                const hsize_t slice[3] = {1, left.size, right.size};
+                H5NS::DataSpace memSpace(3, slice);
 
                 // Each run is entirely low or high (unless the coefficient is identical).
                 // No transpose, conjugation, temporal selection, or internal-loop change.
@@ -393,26 +392,36 @@ void selectHits(const SelectionPar &par, long long traj)
                                 const hsize_t nc = std::min(ioTile, r.size - j);
                                 const hsize_t count[3] = {1, nr, nc};
                                 const hsize_t inOffset[3] = {t, l.input + i, r.input + j};
-                                const hsize_t outOffset[3] = {t, l.output + i, r.output + j};
-                                H5NS::DataSpace memSpace(3, count);
+                                const hsize_t memOffset[3] = {0, l.output + i, r.output + j};
                                 inputSpace.selectHyperslab(H5S_SELECT_SET, count, inOffset);
-                                outputSpace.selectHyperslab(H5S_SELECT_SET, count, outOffset);
+                                memSpace.selectHyperslab(H5S_SELECT_SET, count, memOffset);
                                 inputData.read(buf.data(), memoryType, memSpace, inputSpace);
-                                const std::size_t n = asSize(checkedMul(nr, nc));
-                                for (std::size_t k = 0; k < n; ++k)
+                                for (hsize_t rr = 0; rr < nr; ++rr)
+                                for (hsize_t cc = 0; cc < nc; ++cc)
                                 {
-                                    if (scale != 1.) { buf[k].re *= scale; buf[k].im *= scale; }
+                                    const std::size_t k =
+                                        asSize((l.output + i + rr)*right.size + r.output + j + cc);
+                                    if (scale != 1.)
+                                    {
+                                        buf[k].re *= scale;
+                                        buf[k].im *= scale;
+                                    }
                                     if (!std::isfinite(buf[k].re) || !std::isfinite(buf[k].im) ||
                                         std::abs(buf[k].re) > largest || std::abs(buf[k].im) > largest)
+                                    {
                                         throw std::runtime_error("Non-finite input or normalization overflow at t="
                                                                  + std::to_string(t));
+                                    }
                                 }
-                                outputData.write(buf.data(), memoryType, memSpace, outputSpace);
                                 j += nc;
                             }
                             i += nr;
                         }
                     }
+                    memSpace.selectAll();
+                    const hsize_t outOffset[3] = {t, 0, 0};
+                    outputSpace.selectHyperslab(H5S_SELECT_SET, slice, outOffset);
+                    outputData.write(buf.data(), memoryType, memSpace, outputSpace);
                     const double seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - begin).count();
                     std::cout << "  timeslice " << t << "/" << inputDim[0] - 1 << " done ("
                               << seconds << " s)" << std::endl;

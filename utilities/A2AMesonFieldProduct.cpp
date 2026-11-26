@@ -82,8 +82,9 @@ public:
 using Matrix = A2AMatrix<ComplexD>;
 static_assert(Matrix::IsRowMajor, "Hadrons A2AMatrix is expected to be row-major");
 static constexpr hsize_t nsc = Ns*Nc;
-static constexpr hsize_t ioTile = 512;  // <= 4 MiB conversion buffer
-static constexpr hsize_t chunkSize = 256;
+//static constexpr hsize_t ioTile = 512;  // <= 4 MiB conversion buffer
+const hsize_t ioTile = std::max(dim[1], dim[2]);
+//static constexpr hsize_t chunkSize = 256;
 static const char *metadataName = "_A2AProductMetadata";
 static const char *sourcesName = "_A2AProductInputs";
 
@@ -426,7 +427,8 @@ void product(const ProductPlan &plan, const std::vector<ResidentMatrix> &matrice
             H5NS::H5File out(temporary,H5F_ACC_RDWR);
             auto group = createGroupTree(out,par.outputGroup);
             H5NS::DataSpace outSpace(3,dim);
-            const hsize_t chunk[3] = {1,std::min(chunkSize,dim[1]),std::min(chunkSize,dim[2])};
+            //const hsize_t chunk[3] = {1,std::min(chunkSize,dim[1]),std::min(chunkSize,dim[2])};
+	    const hsize_t chunk[3] = {1, dim[1], dim[2]};
             H5NS::DSetCreatPropList plist; plist.setChunk(3,chunk); plist.setFletcher32();
             auto outData = group.createDataSet(HADRONS_A2AM_NAME,outputType(plan.realBytes),outSpace,plist);
             const auto memType = memoryType();
@@ -555,8 +557,10 @@ void runTrajectory(const std::vector<MatrixPar> &input, const std::vector<Produc
     asSize(checkedAdd(inputBytes,maxWorkspace));
     std::cout << "Resident input payload: " << inputBytes << " bytes (" << double(inputBytes)/(1024.*1024.*1024.)
               << " GiB); " << matrices.size() << " distinct file/group inputs\n"
-              << "Largest result/selection workspace: " << maxWorkspace << " bytes; I/O tile <= "
-              << ioTile*ioTile*sizeof(ComplexValue) << " bytes (Eigen/HDF5 internal buffers additional)\n"
+	      << "Largest result/selection workspace: " << maxWorkspace
+	      << " bytes; I/O conversion buffer: one full timeslice, "
+	      << sizeof(ComplexValue)
+	      << " bytes/element (Eigen/HDF5 internal buffers additional)\n"
               << "No automatic disk spill or input eviction." << std::endl;
     for (auto &m: matrices) load(m);          // OUTSIDE the product loop.
     for (const auto &plan: plans) product(plan,matrices,traj);
