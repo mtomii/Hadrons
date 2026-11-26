@@ -35,6 +35,7 @@ See the full license in the file "LICENSE" in the top level distribution directo
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
+#include <exception>
 #include <limits>
 #include <memory>
 #include <new>
@@ -47,18 +48,28 @@ See the full license in the file "LICENSE" in the top level distribution directo
 #include <tuple>
 #include <vector>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #ifndef HAVE_HDF5
 #error "VarietyContractorDWC requires HDF5 support"
 #endif
 
 // Derived from utilities/K2pipiContractorDWC.cpp at Hadrons commit
 // 28d0561d32b3c5bc7368f0812aa367a284a8df98 (local-2025-edits-grid-develop).
-// DWC connection/multiply/trace kernels and their mathematical order are retained.
+// DWC axis mapping and the left-to-right matrix-product order are retained.
 // Changes: no DiskVector; retain all fixed products; stream last matrices one
 // complete time slice at a time; write flat, cropped, two-dimensional HDF5 data.
 // Source translations are rows (sorted, unique); no average or metadata output.
 // XML removes diskVectorDir/cacheSize and requires translationAverage=false.
 // One process; Eigen threads; no lattice Grid, added conjugation, or hit factors.
+// Performance revision of VarietyContractorDWC at Hadrons commit
+// 6a0e260b3a629c2397aa18d7d1f72a35b1055365: borrow the first fixed input,
+// reuse workspaces, parallelize storage-order selections for fixed products,
+// and parallelize independent products when tracing. Each trace uses a serial,
+// nonconjugating SIMD inner product; floating-point summation order may differ.
+// XML, input IO, time matching, precision, normalization and output are retained.
 
 using namespace Grid;
 using namespace Hadrons;
@@ -218,47 +229,135 @@ Connection connection(Eigen::Index nLeft, AxisInfo left,
   return c;
 }
 
-// Copy selected axes only. Branches are outside component loops. Output storage
-// order is respected; last terms remain column-major without a mathematical transpose.
+// Fixed products copy disjoint rows/columns in parallel. A trace worker copies
+// serially, without creating a nested or serialized OpenMP region per trace.
+template <typename Copy>
+void copySlices(Eigen::Index n, bool parallel, const Copy &copy)
+{
+  if (parallel)
+  {
+    thread_for(i, n,
+    {
+      copy(Eigen::Index(i));
+    });
+  }
+  else
+  {
+    for (Eigen::Index i = 0; i < n; ++i)
+    {
+      copy(i);
+    }
+  }
+}
+
+// Copy selected axes only, following output storage order. Validation and
+// allocation precede any parallel loop; each worker writes disjoint elements.
+// Column-major last terms are not mathematically transposed.
 template <typename Out, typename In>
-void selectMatrix(Out &out, const In &in, const IndexList &rows, const IndexList &cols)
+void selectMatrix(Out &out, const In &in, const IndexList &rows,
+                  const IndexList &cols, bool parallel = false)
 {
   const Eigen::Index nr = rows.empty() ? in.rows() : Eigen::Index(rows.size());
   const Eigen::Index nc = cols.empty() ? in.cols() : Eigen::Index(cols.size());
   checkMatrixSize(nr, nc);
   out.resize(nr, nc);
-  if (rows.empty() && cols.empty()) out = in;
-  else if (rows.empty())
-    for (Eigen::Index c = 0; c < nc; ++c) out.col(c) = in.col(cols[std::size_t(c)]);
-  else if (cols.empty())
-    for (Eigen::Index r = 0; r < nr; ++r) out.row(r) = in.row(rows[std::size_t(r)]);
+  if (rows.empty() && cols.empty())
+  {
+    out = in;
+  }
   else if constexpr (Out::IsRowMajor)
-    for (Eigen::Index r = 0; r < nr; ++r)
-    for (Eigen::Index c = 0; c < nc; ++c)
-      out(r,c) = in(rows[std::size_t(r)], cols[std::size_t(c)]);
+  {
+    if (cols.empty())
+    {
+      copySlices(nr, parallel, [&](Eigen::Index r)
+      {
+        out.row(r) = in.row(rows[std::size_t(r)]);
+      });
+    }
+    else if (rows.empty())
+    {
+      copySlices(nr, parallel, [&](Eigen::Index r)
+      {
+        for (Eigen::Index c = 0; c < nc; ++c)
+        {
+          out(r,c) = in(r,cols[std::size_t(c)]);
+        }
+      });
+    }
+    else
+    {
+      copySlices(nr, parallel, [&](Eigen::Index r)
+      {
+        for (Eigen::Index c = 0; c < nc; ++c)
+        {
+          out(r,c) = in(rows[std::size_t(r)],cols[std::size_t(c)]);
+        }
+      });
+    }
+  }
   else
-    for (Eigen::Index c = 0; c < nc; ++c)
-    for (Eigen::Index r = 0; r < nr; ++r)
-      out(r,c) = in(rows[std::size_t(r)], cols[std::size_t(c)]);
+  {
+    if (rows.empty())
+    {
+      copySlices(nc, parallel, [&](Eigen::Index c)
+      {
+        out.col(c) = in.col(cols[std::size_t(c)]);
+      });
+    }
+    else if (cols.empty())
+    {
+      copySlices(nc, parallel, [&](Eigen::Index c)
+      {
+        for (Eigen::Index r = 0; r < nr; ++r)
+        {
+          out(r,c) = in(rows[std::size_t(r)],c);
+        }
+      });
+    }
+    else
+    {
+      copySlices(nc, parallel, [&](Eigen::Index c)
+      {
+        for (Eigen::Index r = 0; r < nr; ++r)
+        {
+          out(r,c) = in(rows[std::size_t(r)],cols[std::size_t(c)]);
+        }
+      });
+    }
+  }
 }
 
 double multiplyDWC(Matrix &out, const Matrix &a, const Matrix &b,
                    const MatrixAxes &axesA, const MatrixAxes &axesB,
-                   unsigned int nt, Matrix &selection)
+                   unsigned int nt, Matrix &selection,
+                   double &selectionUsec, double &gemmUsec)
 {
   const auto c = connection(a.cols(), axesA.col, b.rows(), axesB.row, nt);
   checkMatrixSize(a.rows(), b.cols());
   if (!c.left.empty())
   {
-    selectMatrix(selection, a, {}, c.left);
+    const auto begin = usecond();
+    selectMatrix(selection, a, {}, c.left, true);
+    selectionUsec += usecond()-begin;
+    const auto gemmBegin = usecond();
     A2AContraction::mul(out, selection, b);
+    gemmUsec += usecond()-gemmBegin;
   }
   else if (!c.right.empty())
   {
-    selectMatrix(selection, b, c.right, {});
+    const auto begin = usecond();
+    selectMatrix(selection, b, c.right, {}, true);
+    selectionUsec += usecond()-begin;
+    const auto gemmBegin = usecond();
     A2AContraction::mul(out, a, selection);
+    gemmUsec += usecond()-gemmBegin;
   }
-  else A2AContraction::mul(out, a, b);
+  else
+  {
+    const auto gemmBegin = usecond();
+    A2AContraction::mul(out, a, b);
+    gemmUsec += usecond()-gemmBegin;
+  }
   return double(a.rows())*double(b.cols())*(8.*double(c.active)-2.);
 }
 
@@ -282,9 +381,13 @@ double traceDWC(ComplexD &acc, const Matrix &a, const LastMatrix &b,
   }
   require(ap->cols() == bp->rows() && ap->rows() == bp->cols(),
           "internal error in selected trace dimensions");
-  // This is tr(a*b), NOT an inner product with conjugation. Grid's dot()
-  // path conjugates its first argument twice intentionally.
-  A2AContraction::accTrMul(acc, *ap, *bp);
+  // ap is row-major (m,n), bp column-major (n,m), so matching flat positions
+  // contain ap(r,c) and bp(c,r). This is tr(ap*bp), with no conjugation.
+  // The caller parallelizes independent products; no inner OpenMP or critical.
+  using Vector = Eigen::Matrix<ComplexD,Eigen::Dynamic,1>;
+  const Eigen::Map<const Vector> av(ap->data(),ap->size());
+  const Eigen::Map<const Vector> bv(bp->data(),bp->size());
+  acc += (av.array()*bv.array()).sum();
   return 8.*double(ap->rows())*double(ap->cols());
 }
 
@@ -878,6 +981,30 @@ struct ProductData
     std::vector<std::size_t> written;
 };
 
+std::size_t traceWorkerCount(const Plan &plan)
+{
+    std::size_t jobs = 0;
+    for (const auto &use: plan.matrices)
+    {
+        jobs = std::max(jobs,use.lastUses.size());
+    }
+#ifdef _OPENMP
+    const auto threads = std::size_t(std::max(1,omp_get_max_threads()));
+#else
+    const std::size_t threads = 1;
+#endif
+    return std::max(std::size_t(1),std::min(jobs,threads));
+}
+
+struct TraceWorkspace
+{
+    Matrix selectedA;
+    LastMatrix selectedB;
+    double flops = 0.;
+    std::size_t traces = 0;
+    std::exception_ptr error;
+};
+
 // Estimate logical array payloads with conservative group overlap. Retained
 // vector capacities, transient reallocations and Eigen/HDF5 workspaces are
 // additional. No large numerical arrays are constructed by this estimate.
@@ -909,8 +1036,7 @@ void reportMemory(const VarietyContractorDWCPar &par, const Plan &plan,
         const auto &p = par.product[ip];
         MatrixDimensions current = dims[q.terms.front()];
         auto axes = matrixAxes(par.a2aMatrix[q.terms.front()],p.times.front(),par.global.nt);
-        std::size_t selection = 0;
-        work[ip] = matrixBytes(current);
+        std::size_t selection = 0, intermediate = 0;
         for (std::size_t j = 1; j < q.terms.size(); ++j)
         {
             const auto &right = dims[q.terms[j]];
@@ -918,17 +1044,24 @@ void reportMemory(const VarietyContractorDWCPar &par, const Plan &plan,
             const auto c = connection(current.cols,axes.col,right.rows,rightAxes.row,par.global.nt);
             if (!c.left.empty())
             {
-                selection = matrixBytes({current.rows,c.active});
+                selection = std::max(selection,matrixBytes({current.rows,c.active}));
             }
             else if (!c.right.empty())
             {
-                selection = matrixBytes({c.active,right.cols});
+                selection = std::max(selection,matrixBytes({c.active,right.cols}));
             }
             const MatrixDimensions next{current.rows,right.cols};
-            work[ip] = std::max(work[ip],checkedAdd(checkedAdd(matrixBytes(current),matrixBytes(next)),selection));
+            if (j+1 < q.terms.size())
+            {
+                intermediate = std::max(intermediate,matrixBytes(next));
+            }
             current = next;
             axes.col = rightAxes.col;
         }
+        // Final results are already counted in productTotal. At most two owned
+        // non-final intermediates coexist, including the reused tmp from the
+        // preceding translation. The first input remains a borrowed reference.
+        work[ip] = checkedAdd(checkedMul(2,intermediate),selection);
         productBytes[ip] = checkedMul(q.translations.size(),matrixBytes(current));
         productTotal = checkedAdd(productTotal,productBytes[ip]);
         nProducts = checkedAdd(nProducts,q.translations.size());
@@ -978,8 +1111,9 @@ void reportMemory(const VarietyContractorDWCPar &par, const Plan &plan,
     auto tracePeak = checkedAdd(productTotal,resultBytes);
     tracePeak = checkedAdd(tracePeak,lastRead);
     tracePeak = checkedAdd(tracePeak,lastMatrix);
-    tracePeak = checkedAdd(tracePeak,selectedA);
-    tracePeak = checkedAdd(tracePeak,selectedB);
+    const auto workers = traceWorkerCount(plan);
+    const auto traceWork = checkedMul(workers,checkedAdd(selectedA,selectedB));
+    tracePeak = checkedAdd(tracePeak,traceWork);
     std::cout << "======== Array memory estimate (decimal GB; capacity/transient/library overhead excluded)"
               << std::endl;
     std::cout << "  " << nProducts << " fixed matrices; " << par.product.size()
@@ -989,6 +1123,9 @@ void reportMemory(const VarietyContractorDWCPar &par, const Plan &plan,
     printMemory("cropped results",resultBytes);
     printMemory("fixed-build numeric-array estimate",buildPeak);
     printMemory("trace-phase numeric-array estimate",tracePeak);
+    std::cout << "  trace workers: at most " << workers
+              << " (independent XML products)" << std::endl;
+    printMemory("trace selection workspaces (all workers)",traceWork);
     printMemory("time-match entries (vector capacity/headers additional)",matchingBytes);
 }
 
@@ -999,6 +1136,7 @@ void buildFixedProducts(const VarietyContractorDWCPar &par, const Plan &plan,
     std::map<std::size_t,std::vector<Matrix>> live;
     ReadBuffer buffer;
     double algebraUsec = 0., algebraFlops = 0.;
+    double selectionUsec = 0., gemmUsec = 0.;
     std::size_t built = 0;
     for (std::size_t ig = 0; ig < plan.groups.size(); ++ig)
     {
@@ -1021,6 +1159,9 @@ void buildFixedProducts(const VarietyContractorDWCPar &par, const Plan &plan,
             }
             printIO(mp.name,stats);
         }
+        // Grouped term names have fixed dimensions. Reuse these work arrays
+        // across translations/products, then release them at the group boundary.
+        Matrix tmp, selection;
         for (const auto ip: g.products)
         {
             const auto &p = par.product[ip];
@@ -1031,17 +1172,31 @@ void buildFixedProducts(const VarietyContractorDWCPar &par, const Plan &plan,
             {
                 const auto algebraBegin = usecond();
                 const auto firstTime = timeModulo(std::int64_t(p.times.front())+dt,par.global.nt);
-                Matrix prod = live.at(q.terms.front())[firstTime];
+                const Matrix &first = live.at(q.terms.front())[firstTime];
+                Matrix prod;
                 auto axes = matrixAxes(par.a2aMatrix[q.terms.front()],firstTime,par.global.nt);
-                Matrix tmp, selection;
+                if (q.terms.size() == 1)
+                {
+                    // A one-factor fixed result must survive release of live.
+                    prod = first;
+                }
                 for (std::size_t j = 1; j < q.terms.size(); ++j)
                 {
                     const auto t = timeModulo(std::int64_t(p.times[j])+dt,par.global.nt);
                     const Matrix &right = live.at(q.terms[j])[t];
                     const auto rightAxes = matrixAxes(par.a2aMatrix[q.terms[j]],t,par.global.nt);
-                    algebraFlops += multiplyDWC(tmp,prod,right,axes,rightAxes,par.global.nt,selection);
-                    // Swapping owned arrays preserves the arithmetic and avoids prod=tmp.
-                    prod.swap(tmp);
+                    if (j == 1)
+                    {
+                        algebraFlops += multiplyDWC(prod,first,right,axes,rightAxes,
+                                                    par.global.nt,selection,selectionUsec,gemmUsec);
+                    }
+                    else
+                    {
+                        algebraFlops += multiplyDWC(tmp,prod,right,axes,rightAxes,
+                                                    par.global.nt,selection,selectionUsec,gemmUsec);
+                        // Preserve left-to-right multiplication without copying prod.
+                        prod.swap(tmp);
+                    }
                     axes.col = rightAxes.col;
                 }
                 cached.push_back({std::move(prod),axes});
@@ -1060,6 +1215,10 @@ void buildFixedProducts(const VarietyContractorDWCPar &par, const Plan &plan,
               << " sec, algebra/owned assignment " << algebraUsec/1.e6 << " sec, "
               << (algebraUsec > 0. ? algebraFlops/algebraUsec/1.e3 : 0.) << " GFlop/s"
               << std::endl;
+    std::cout << "  Fixed selection: " << selectionUsec/1.e6
+              << " sec; GEMM: " << gemmUsec/1.e6 << " sec, "
+              << (gemmUsec > 0. ? algebraFlops/gemmUsec/1.e3 : 0.)
+              << " GFlop/s (GEMM only)" << std::endl;
     // live and its conversion buffer die before the result arrays are allocated.
 }
 
@@ -1080,8 +1239,10 @@ void contractLastMatrices(const VarietyContractorDWCPar &par, const Plan &plan,
         }
     }
     ReadBuffer buffer;
-    LastMatrix last, selectedLast;
-    Matrix selection;
+    LastMatrix last;
+    // Buffers survive EMF/time batches. The full last slice is shared read-only;
+    // only selected matrices and counters belong to individual trace workers.
+    std::vector<TraceWorkspace> workspace(traceWorkerCount(plan));
     std::vector<IOStats> stats(par.a2aMatrix.size());
     double traceUsec = 0., traceFlops = 0.;
     std::size_t traces = 0;
@@ -1107,21 +1268,69 @@ void contractLastMatrices(const VarietyContractorDWCPar &par, const Plan &plan,
             readers[id]->readSlice(u,last,buffer,stats[id]);
             const auto axes = matrixAxes(par.a2aMatrix[id],u,par.global.nt);
             const auto traceBegin = usecond();
-            for (const auto &useProduct: use.lastUses)
+            for (auto &w: workspace)
             {
-                const auto ip = useProduct.product;
-                auto &d = output[ip];
-                auto &result = d.results[useProduct.result];
-                for (const auto &match: plan.products[ip].matches[u])
+                w.flops = 0.;
+                w.traces = 0;
+                w.error = nullptr;
+            }
+            const auto nUses = use.lastUses.size();
+#ifdef _OPENMP
+            const int workers = int(std::min(workspace.size(),nUses));
+#pragma omp parallel for schedule(dynamic) num_threads(workers)
+#endif
+            for (std::size_t iu = 0; iu < nUses; ++iu)
+            {
+#ifdef _OPENMP
+                const auto worker = std::size_t(omp_get_thread_num());
+#else
+                const std::size_t worker = 0;
+#endif
+                auto &w = workspace[worker];
+                if (w.error)
                 {
-                    const auto &fixed = d.fixed[match.translation];
-                    traceFlops += traceDWC(result[match.offset],fixed.value,last,
-                                          fixed.axes,axes,par.global.nt,selection,selectedLast);
-                    ++d.written[useProduct.result];
-                    ++traces;
+                    continue;
+                }
+                try
+                {
+                    const auto &useProduct = use.lastUses[iu];
+                    const auto ip = useProduct.product;
+                    auto &d = output[ip];
+                    auto &result = d.results[useProduct.result];
+                    const auto &matches = plan.products[ip].matches[u];
+                    double productFlops = 0.;
+                    // A product/last pair occurs only once in use.lastUses.
+                    // Its results and written counter therefore have one owner.
+                    for (const auto &match: matches)
+                    {
+                        const auto &fixed = d.fixed[match.translation];
+                        productFlops += traceDWC(result[match.offset],fixed.value,last,
+                                                fixed.axes,axes,par.global.nt,
+                                                w.selectedA,w.selectedB);
+                    }
+                    d.written[useProduct.result] += matches.size();
+                    w.flops += productFlops;
+                    w.traces += matches.size();
+                }
+                catch (...)
+                {
+                    // No exception may escape an OpenMP worker. Each worker
+                    // owns its error slot; rethrow on the main thread below.
+                    w.error = std::current_exception();
                 }
             }
+            // Includes the parallel-loop barrier. Use elapsed wall time, not
+            // the sum of individual worker durations, for the node's GFlop/s.
             traceUsec += usecond()-traceBegin;
+            for (const auto &w: workspace)
+            {
+                if (w.error)
+                {
+                    std::rethrow_exception(w.error);
+                }
+                traceFlops += w.flops;
+                traces += w.traces;
+            }
         }
         std::cout << "  time step completed in " << (usecond()-stepBegin)/1.e6
                   << " sec; cumulative traces " << traces << std::endl;
